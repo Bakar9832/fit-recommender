@@ -232,14 +232,15 @@ Length never changes the recommended size; it's advisory.
   "confidence": "high",
   "alternative_size": "L",
   "zones": {
-    "bust":  { "class": "good",    "note": "Sits comfortably at the bust." },
-    "waist": { "class": "relaxed", "note": "A little loose at the waist." },
-    "hip":   { "class": "good",    "note": "Comfortable through the hip." }
+    "bust":  { "class": "good", "note": "Sits comfortably at the bust." },
+    "waist": { "class": "good", "note": "Sits comfortably at the waist." },
+    "hip":   { "class": "good", "note": "Comfortable through the hip." }
   },
   "length_note": "Falls just below the knee at your height.",
   "silhouette": { "bust": 37, "waist": 30, "hip": 40 }  // for the SVG
 }
 ```
+*(Sample shows all-`good` zones → `high` confidence, consistent with §4.4. A `relaxed`/`snug` zone would drop confidence to `medium`; any `too_tight` zone forces `low`.)*
 
 ---
 
