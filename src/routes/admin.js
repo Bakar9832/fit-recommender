@@ -8,6 +8,12 @@ import {
   createProductSchema,
   zodDetails,
 } from "../lib/validation.js";
+import { csvToObjects } from "../lib/csv.js";
+import {
+  planImport,
+  IMPORT_COLUMNS,
+  REQUIRED_COLUMNS,
+} from "../services/csvImport.js";
 
 const router = Router();
 
@@ -85,6 +91,65 @@ router.post("/products", async (req, res, next) => {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return res.status(409).json({ error: "sku_already_exists" });
     }
+    return next(err);
+  }
+});
+
+// GET /v1/admin/import/template — downloadable CSV header row (the blank template).
+router.get("/import/template", (_req, res) => {
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader(
+    "Content-Disposition",
+    'attachment; filename="product-import-template.csv"'
+  );
+  res.send(IMPORT_COLUMNS.join(",") + "\n");
+});
+
+// POST /v1/admin/import — CSV bulk product import (spec §8). Raw text/csv body.
+// Validates every row, imports the good ones, and reports per-row failures.
+// Insert-only: duplicate SKUs (in-file or pre-existing) are skipped + reported.
+router.post("/import", async (req, res, next) => {
+  try {
+    const text = typeof req.body === "string" ? req.body : "";
+    if (!text.trim()) return res.status(422).json({ error: "empty_csv" });
+
+    const { header, records } = csvToObjects(text);
+    const missing = REQUIRED_COLUMNS.filter((c) => !header.includes(c));
+    if (missing.length) {
+      return res.status(422).json({ error: "missing_columns", missing });
+    }
+    if (records.length === 0) {
+      return res.status(422).json({ error: "no_data_rows" });
+    }
+
+    // Gather tenant-scoped context for the pure planner.
+    const [templates, existing] = await Promise.all([
+      prisma.sizeChartTemplate.findMany({
+        where: { outletId: req.outletId },
+        select: { id: true, name: true },
+      }),
+      prisma.product.findMany({
+        where: { outletId: req.outletId },
+        select: { sku: true },
+      }),
+    ]);
+    const existingSkus = new Set(existing.map((p) => p.sku));
+
+    const { toInsert, errors } = planImport(records, { templates, existingSkus });
+
+    // Write the valid rows atomically — a failure here imports nothing (no
+    // half-written file), while the response still details which rows were good.
+    if (toInsert.length > 0) {
+      const data = toInsert.map((p) => ({ ...p, outletId: req.outletId }));
+      await prisma.$transaction([prisma.product.createMany({ data })]);
+    }
+
+    return res.status(200).json({
+      imported: toInsert.length,
+      skipped: errors.length,
+      errors,
+    });
+  } catch (err) {
     return next(err);
   }
 });

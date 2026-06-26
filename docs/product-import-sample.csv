@@ -1,0 +1,4 @@
+sku,template,garmentType,name,fabric,fitTypeOverride,colorSlot,formality,styleTag
+LAWN-001,Default Pret Standard,two_piece,Summer Lawn Suit,lawn,,3,casual,ethnic
+KURTI-002,Default Pret Standard,one_piece,Everyday Kurti,cotton,fitted,,,
+FORMAL-003,Default Pret Standard,two_piece,Evening Formal,formal,,,formal,fusion

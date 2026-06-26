@@ -8,6 +8,8 @@ import adminRouter from "./routes/admin.js";
 export function createApp() {
   const app = express();
   app.use(express.json());
+  // Raw CSV body for the bulk-import endpoint (spec §8).
+  app.use(express.text({ type: ["text/csv", "text/plain"], limit: "2mb" }));
 
   app.use(healthRouter);
   app.use(fitRouter);

@@ -4,9 +4,11 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> CSV bulk import (spec §8): one upload maps products → template + fabric + garment_type.
-> admin_token guarded, scoped to req.outletId. Provide a downloadable CSV template. Highest-value
-> onboarding feature — prioritize correctness + clear per-row error reporting.
+> Validation pass (spec §9): take one real outlet's published chart + 8–10 real products, recruit
+> 5–10 people with known measurements who own them, run their measurements through the engine, and
+> check recommended size matches real best fit. Tune ease bands (§4.2) + selection weights (§4.4) —
+> ideally with a tailor — on the misses. This is data/field work, not a code feature; all Phase 1
+> build items are now done. Don't pitch accuracy until this passes.
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -17,9 +19,9 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Length handling (spec §4.5): height → hem descriptor, advisory only
 - [x] `POST /v1/fit/recommend` route: validate input (Zod) → load via Prisma → call engine → return
 - [x] Admin CRUD: templates, rows, products
-- [ ] CSV bulk import (spec §8)
+- [x] CSV bulk import (spec §8)
 - [x] Unit tests for the fit engine (pure functions, several body/size cases)
-- [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights
+- [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  ← only item left
 
 ## Decisions made (don't relitigate)
 - DB: Postgres + Prisma (chosen for "pick once, never swap"; migration friction solved by Prisma).
@@ -32,6 +34,22 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-27 — Built CSV bulk import (spec §8) — **completes all Phase 1 build items**. Intake: raw
+  `text/csv` body (`express.text()` for text/csv|text/plain, 2mb). `src/lib/csv.js`: hand-rolled, zero-dep
+  RFC-4180 `parseCsv`/`csvToObjects` (quotes, "" escapes, embedded commas/newlines, CRLF) — unit-tested
+  instead of adding a parser lib (flagged, OK to swap for csv-parse later). `src/services/csvImport.js`:
+  pure `planImport(records,{templates,existingSkus})` → {toInsert,errors}; resolves `template` col by
+  id-then-name within the outlet (cross-tenant ref → "template not found"), reuses `createProductSchema`,
+  insert-only dup handling (in-file + existing). Route `POST /v1/admin/import` (adminAuth, tenant-scoped):
+  validate-all-then-atomic `createMany` in a $transaction (no half-import) → 200 {imported,skipped,errors};
+  422 empty/missing-columns/no-rows. `GET /v1/admin/import/template` streams the header row; docs in
+  `docs/csv-import.md` + `docs/product-import-sample.csv`. 46 tests pass (12 new: 6 parser, 6 route incl.
+  clean import / bad-row-partial / dup-sku / 401 / 422 / cross-tenant no-leak). Verified live via curl
+  (import 3 → re-import all-skipped → template download). Next: §9 validation pass (field work — tune
+  ease bands + weights on real data). Gotcha: parallel test FILES share one DB — two files both deleting
+  `ZZTEST*` templates hit a FK RESTRICT (one file's product referenced another's template). Fix: per-file
+  unique fixture prefixes + own outlet (import uses `ZZCSV*` / `test-outlet-csv`). Demo data left in
+  demo-outlet: products LAWN-001/KURTI-002/FORMAL-003 + the earlier stray "Curl Demo Template".
 - 2026-06-26 — Built admin CRUD (spec §7), all token-guarded + tenant-scoped (hard rule #3).
   `src/lib/adminAuth.js` (reads `Authorization: Bearer` or `X-Admin-Token` → `findFirst` outlet by
   adminToken → pins `req.outletId`; 401 missing/invalid). `src/routes/admin.js` mounted at `/v1/admin`:
