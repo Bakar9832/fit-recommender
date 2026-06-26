@@ -4,8 +4,9 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> Admin CRUD (spec §7, admin_token in header): create chart template, add/replace size rows,
-> create product, list products. Scope every query by the authenticated outlet's outletId.
+> CSV bulk import (spec §8): one upload maps products → template + fabric + garment_type.
+> admin_token guarded, scoped to req.outletId. Provide a downloadable CSV template. Highest-value
+> onboarding feature — prioritize correctness + clear per-row error reporting.
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -15,7 +16,7 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Wording layer (spec §5): (zone, class) → garment-focused phrase
 - [x] Length handling (spec §4.5): height → hem descriptor, advisory only
 - [x] `POST /v1/fit/recommend` route: validate input (Zod) → load via Prisma → call engine → return
-- [ ] Admin CRUD: templates, rows, products
+- [x] Admin CRUD: templates, rows, products
 - [ ] CSV bulk import (spec §8)
 - [x] Unit tests for the fit engine (pure functions, several body/size cases)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights
@@ -31,6 +32,19 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-26 — Built admin CRUD (spec §7), all token-guarded + tenant-scoped (hard rule #3).
+  `src/lib/adminAuth.js` (reads `Authorization: Bearer` or `X-Admin-Token` → `findFirst` outlet by
+  adminToken → pins `req.outletId`; 401 missing/invalid). `src/routes/admin.js` mounted at `/v1/admin`:
+  POST `/templates` (201), POST `/templates/:id/rows` (full replace via `$transaction` deleteMany+createMany,
+  200 `{templateId,rowCount}`), POST `/products` (201; P2002→409 `sku_already_exists`), GET `/products`
+  (200, scoped to outletId). Every `:id`/`templateId` verified via `findFirst({id, outletId})` → 404
+  `template_not_found`, never cross-tenant. Zod schemas added to `validation.js` (all `.strict()`;
+  rows refine unique sizeLabel; `zodDetails` helper; chartInches positive ≤120). 34 tests pass incl. 10
+  admin integration tests: happy create→rows→product→list, 401 missing/invalid, 409 dup, 422 bad body,
+  and cross-tenant (A token + B templateId) → 404 with verified no-mutation/no-create. Verified live via
+  curl (create 201 / no-token 401 / list 200). Next: CSV bulk import (§8). Notes: Phase 2 cols
+  (colorSlot/formality/styleTag) accepted as optional pass-through on product create per task, still unused
+  in logic. Left a stray "Curl Demo Template" (no rows) in demo-outlet from the curl demo — harmless.
 - 2026-06-26 — Built `POST /v1/fit/recommend` (spec §7). `src/lib/validation.js` (Zod, 20–80in sanity
   band, height optional, `.strict()`); `src/routes/fit.js` (422 on validation fail → outlet lookup by
   outletKey, 404 `outlet_not_found` → product `findUnique` on `outletId_sku` with template+ordered rows
