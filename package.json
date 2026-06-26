@@ -11,7 +11,8 @@
     "seed": "node prisma/seed.js",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
-    "test": "vitest run"
+    "test": "vitest run",
+    "validate": "node tools/validate.js"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0",

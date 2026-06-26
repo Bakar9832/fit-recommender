@@ -4,11 +4,12 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> Validation pass (spec §9): take one real outlet's published chart + 8–10 real products, recruit
-> 5–10 people with known measurements who own them, run their measurements through the engine, and
-> check recommended size matches real best fit. Tune ease bands (§4.2) + selection weights (§4.4) —
-> ideally with a tailor — on the misses. This is data/field work, not a code feature; all Phase 1
-> build items are now done. Don't pitch accuracy until this passes.
+> Validation pass (spec §9) — FIELD WORK now unblocked by tooling. All Phase 1 build items are
+> complete and the accuracy harness is ready (`npm run validate <file>`). Next concrete step:
+> gather one real outlet's chart + 8–10 real products + 5–10 people's known measurements & true
+> best size, encode them as harness cases, run it, and tune ease bands (§4.2) + weights (§4.4) on
+> the misses (ideally with a tailor). Engine logic stays put until real data says otherwise.
+> Don't pitch accuracy until this passes.
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -34,6 +35,18 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-27 — Built §9 accuracy harness (DEV TOOLING, not a product endpoint). `tools/validate.js`
+  + `tools/validation-example.json`; `npm run validate <file>`. Loads JSON `{templates,cases}` or CSV
+  cases (`--templates <json>`, reuses `src/lib/csv.js`); each case runs through the REAL `recommendFit`
+  (no reimplementation). Reports overall accuracy %, a confusion summary (+1/-1/correct/other), and
+  per-miss detail: body + template + expected-vs-predicted + a per-size weighted-score table with
+  per-zone class+ease, flagging the predicted/expected rows and 0-0 size-up ties. The score breakdown
+  is recomputed ONLY from the same exported primitives (easeBands.js) for explanation — engine logic
+  untouched (bands/weights/selection unchanged, per task). Sample run on the example: 7/10 = 70%, 3
+  misses (2×+1, 1×-1). 46 tests still pass. Optional `--min <pct>` exits 1 below threshold (tuning loop).
+  Gotcha: `npm run validate` needs `--` before script flags (e.g. `npm run validate -- cases.csv
+  --templates charts.json`) or npm swallows them; bare `npm run validate file.json` is fine. Next:
+  field work — encode real outlet chart + real people's measurements/best-fit as cases, run, tune bands.
 - 2026-06-27 — Built CSV bulk import (spec §8) — **completes all Phase 1 build items**. Intake: raw
   `text/csv` body (`express.text()` for text/csv|text/plain, 2mb). `src/lib/csv.js`: hand-rolled, zero-dep
   RFC-4180 `parseCsv`/`csvToObjects` (quotes, "" escapes, embedded commas/newlines, CRLF) — unit-tested

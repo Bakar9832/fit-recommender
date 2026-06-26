@@ -1,0 +1,27 @@
+{
+  "_comment": "Example accuracy-harness input. `templates` are reusable charts; each `case` references one by name (or supply an inline `chart`). expected_size is the human's real best fit. This sample is synthetic and deliberately includes a few misses to exercise the report.",
+  "templates": {
+    "Lawn Standard": {
+      "fitType": "regular",
+      "fabric": null,
+      "rows": [
+        { "sizeLabel": "S", "sortOrder": 1, "bust": 35, "waist": 27, "hip": 37, "kameezLength": 38 },
+        { "sizeLabel": "M", "sortOrder": 2, "bust": 37, "waist": 29, "hip": 39, "kameezLength": 40 },
+        { "sizeLabel": "L", "sortOrder": 3, "bust": 39, "waist": 31, "hip": 41, "kameezLength": 42 },
+        { "sizeLabel": "XL", "sortOrder": 4, "bust": 41, "waist": 33, "hip": 43, "kameezLength": 44 }
+      ]
+    }
+  },
+  "cases": [
+    { "label": "centre of M", "template": "Lawn Standard", "bust": 33, "waist": 25, "hip": 35, "expected_size": "M" },
+    { "label": "small frame", "template": "Lawn Standard", "bust": 31, "waist": 23, "hip": 33, "expected_size": "S" },
+    { "label": "solid L", "template": "Lawn Standard", "bust": 35, "waist": 27, "hip": 37, "expected_size": "L" },
+    { "label": "solid XL", "template": "Lawn Standard", "bust": 37, "waist": 29, "hip": 39, "expected_size": "XL" },
+    { "label": "between M and L, owner says M fits best", "template": "Lawn Standard", "bust": 34, "waist": 26.5, "hip": 36, "expected_size": "M" },
+    { "label": "owner prefers the roomier L", "template": "Lawn Standard", "bust": 33, "waist": 25, "hip": 35, "expected_size": "L" },
+    { "label": "above the chart", "template": "Lawn Standard", "bust": 42, "waist": 34, "hip": 44, "expected_size": "XL" },
+    { "label": "narrow", "template": "Lawn Standard", "bust": 30, "waist": 22, "hip": 32, "expected_size": "S" },
+    { "label": "owner runs a snugger L", "template": "Lawn Standard", "bust": 38, "waist": 30, "hip": 40, "expected_size": "L" },
+    { "label": "with height (length advisory only)", "template": "Lawn Standard", "bust": 36, "waist": 28, "hip": 38, "height": 64, "expected_size": "L" }
+  ]
+}
