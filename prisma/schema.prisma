@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FitType {
+  fitted
+  regular
+  loose
+}
+
+enum GarmentType {
+  one_piece
+  two_piece
+}
+
+model Outlet {
+  id         String              @id @default(cuid())
+  name       String
+  outletKey  String              @unique // public, used by widget
+  adminToken String // secret, used for CRUD/import
+  createdAt  DateTime            @default(now())
+  templates  SizeChartTemplate[]
+  products   Product[]
+}
+
+// Reusable chart (e.g. "Lawn Standard") so an outlet enters S/M/L/XL ONCE
+// and reuses it across many products. This is the key onboarding-friction fix.
+model SizeChartTemplate {
+  id        String         @id @default(cuid())
+  outletId  String
+  outlet    Outlet         @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  name      String // "Lawn Standard", "Formal Pret"
+  fitType   FitType
+  createdAt DateTime       @default(now())
+  rows      SizeChartRow[]
+  products  Product[]
+}
+
+// One row per size within a template. All measurements in inches, "to-fit" body.
+model SizeChartRow {
+  id            String            @id @default(cuid())
+  templateId    String
+  template      SizeChartTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  sizeLabel     String // 'S' | 'M' | 'L' | 'XL' | 'XXL'
+  sortOrder     Int // explicit S<M<L<XL ordering
+  bust          Float?
+  waist         Float?
+  hip           Float?
+  kameezLength  Float? // garment length, shoulder to hem
+  trouserWaist  Float? // null for one-piece
+  trouserLength Float? // null for one-piece
+
+  @@unique([templateId, sizeLabel])
+}
+
+model Product {
+  id              String            @id @default(cuid())
+  outletId        String
+  outlet          Outlet            @relation(fields: [outletId], references: [id], onDelete: Cascade)
+  sku             String // matches data-product on the page
+  name            String?
+  templateId      String
+  template        SizeChartTemplate @relation(fields: [templateId], references: [id])
+  fitTypeOverride FitType? // overrides template fitType if set
+  garmentType     GarmentType
+  fabric          String? // 'lawn'|'cotton'|'formal' (drives size-up hint)
+
+  // --- Phase 2 foresight: add now, leave unused, so no migration later ---
+  colorSlot       Int? // index into fixed 12–16 palette
+  formality       String? // 'casual'|'semi'|'formal'
+  styleTag        String? // 'ethnic'|'fusion'
+
+  @@unique([outletId, sku])
+  @@index([outletId, colorSlot, formality]) // for Phase 2 pairing queries
+}
