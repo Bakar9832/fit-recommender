@@ -4,9 +4,8 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> `POST /v1/fit/recommend` route: validate input (Zod, spec §7 sanity range 20–80in) →
-> load product + template rows via Prisma (scoped by outletKey→outletId, §4.1 query) →
-> call `recommendFit` → return the §4.6 object. Route/validation/DB-loading only; engine is done.
+> Admin CRUD (spec §7, admin_token in header): create chart template, add/replace size rows,
+> create product, list products. Scope every query by the authenticated outlet's outletId.
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -15,7 +14,7 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Fit engine in `services/` (spec §4): ease bands → per-zone class → size selection → output object
 - [x] Wording layer (spec §5): (zone, class) → garment-focused phrase
 - [x] Length handling (spec §4.5): height → hem descriptor, advisory only
-- [ ] `POST /v1/fit/recommend` route: validate input (Zod) → load via Prisma → call engine → return
+- [x] `POST /v1/fit/recommend` route: validate input (Zod) → load via Prisma → call engine → return
 - [ ] Admin CRUD: templates, rows, products
 - [ ] CSV bulk import (spec §8)
 - [x] Unit tests for the fit engine (pure functions, several body/size cases)
@@ -32,6 +31,17 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-26 — Built `POST /v1/fit/recommend` (spec §7). `src/lib/validation.js` (Zod, 20–80in sanity
+  band, height optional, `.strict()`); `src/routes/fit.js` (422 on validation fail → outlet lookup by
+  outletKey, 404 `outlet_not_found` → product `findUnique` on `outletId_sku` with template+ordered rows
+  in ONE query §4.1, 404 `product_not_found` → effective fitType `fitTypeOverride ?? template.fitType` →
+  `recommendFit` → §4.6 JSON). Wired into `app.js` + added central 500 error handler. Seed now exports
+  idempotent `seedDemo(prisma)` and creates demo product `DEMO-001` (two_piece, fabric null) so the route
+  has something to recommend; tests reuse `seedDemo` (no parallel seed logic). 24 tests pass incl. 4
+  integration tests (ephemeral `listen(0)` + built-in fetch, no new deps): happy/422/404-sku/404-outlet.
+  Verified live via curl. Next: admin CRUD. Gotcha: a stale node server (PID from an earlier session)
+  was holding port 3000 → fresh server hit EADDRINUSE and an old route-less server answered curls; killed
+  it. Watch for leftover `npm run dev`/server processes between sessions.
 - 2026-06-26 — Built fit engine as pure functions in `src/services/` (no DB): `easeBands.js`
   (EASE_BANDS/ZONE_PENALTY/ZONE_WEIGHT + `classifyZone` §4.3 + `bandsFor`), `wording.js` (`noteFor`,
   §5 garment-focused, keyed only on zone+class), `length.js` (`lengthNote`, advisory §4.5), `fitEngine.js`

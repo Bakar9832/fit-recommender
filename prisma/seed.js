@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
-
 // Default starting template (spec §3 "Seed defaults" + §8 onboarding):
 // Pakistani "Medium" centers at bust 37 / waist 29 / hip 39 in. The spec's
 // stated ranges (bust 36–38, waist 28–30, hip 38–40) are the ±1in industry
@@ -14,9 +12,26 @@ const DEFAULT_SIZE_ROWS = [
   { sizeLabel: "XL", sortOrder: 4, bust: 41, waist: 33, hip: 43 },
 ];
 
-async function main() {
+// One demo product so the widget / fit route has something to recommend against.
+// fabric:null keeps the recommendation deterministic (no shrink size-up bump).
+const DEMO_PRODUCT = {
+  sku: "DEMO-001",
+  name: "Demo Lawn Two-Piece",
+  garmentType: "two_piece",
+  fabric: null,
+};
+
+/**
+ * Idempotent demo seed: one outlet → one default template (+ rows) → one product
+ * referencing that template. Safe to run repeatedly (all upserts). Exported so
+ * tests can guarantee this baseline without duplicating seed logic.
+ *
+ * @param {import("@prisma/client").PrismaClient} prisma
+ * @returns {Promise<{ outlet: object, template: object, product: object }>}
+ */
+export async function seedDemo(prisma) {
   // A template must belong to an outlet (outletId is required). Create a demo
-  // outlet to own the default template. Upserts keep the seed idempotent.
+  // outlet to own the default template.
   const outlet = await prisma.outlet.upsert({
     where: { outletKey: "demo-outlet" },
     update: {},
@@ -27,8 +42,8 @@ async function main() {
     },
   });
 
-  // Find an existing default template for this outlet (templates have no unique
-  // natural key, so we match on name within the outlet) to stay idempotent.
+  // Templates have no unique natural key, so match on name within the outlet to
+  // stay idempotent.
   const existing = await prisma.sizeChartTemplate.findFirst({
     where: { outletId: outlet.id, name: "Default Pret Standard" },
   });
@@ -47,27 +62,42 @@ async function main() {
   for (const row of DEFAULT_SIZE_ROWS) {
     await prisma.sizeChartRow.upsert({
       where: {
-        templateId_sizeLabel: {
-          templateId: template.id,
-          sizeLabel: row.sizeLabel,
-        },
+        templateId_sizeLabel: { templateId: template.id, sizeLabel: row.sizeLabel },
       },
       update: row,
       create: { ...row, templateId: template.id },
     });
   }
 
-  console.log(
-    `Seeded outlet "${outlet.name}" (${outlet.outletKey}) with template ` +
-      `"${template.name}" [${DEFAULT_SIZE_ROWS.map((r) => r.sizeLabel).join("/")}].`
-  );
+  // Demo product on the (outletId, sku) unique key.
+  const product = await prisma.product.upsert({
+    where: { outletId_sku: { outletId: outlet.id, sku: DEMO_PRODUCT.sku } },
+    update: { ...DEMO_PRODUCT, templateId: template.id },
+    create: { ...DEMO_PRODUCT, outletId: outlet.id, templateId: template.id },
+  });
+
+  return { outlet, template, product };
 }
 
-main()
-  .catch((e) => {
+// Run as a script (`npm run seed`).
+async function main() {
+  const prisma = new PrismaClient();
+  try {
+    const { outlet, template, product } = await seedDemo(prisma);
+    console.log(
+      `Seeded outlet "${outlet.name}" (${outlet.outletKey}) with template ` +
+        `"${template.name}" [${DEFAULT_SIZE_ROWS.map((r) => r.sizeLabel).join("/")}] ` +
+        `and product "${product.sku}".`
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// Only execute when run directly, not when imported by tests.
+if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith("seed.js")) {
+  main().catch((e) => {
     console.error(e);
     process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });
+}
