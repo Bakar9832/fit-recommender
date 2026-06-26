@@ -42,6 +42,7 @@ Shopper browser (outlet's product page)
 - **API:** Node + Express. Stateless. All fit math server-side (keeps logic private, lets you fix bugs without re-shipping the widget).
 - **DB:** Postgres, accessed through **Prisma** (schema-as-code + generated migrations + typed client — kills the migration friction while keeping relational structure).
 - **Widget:** React, built to a single self-contained JS bundle. Embed pattern like analytics scripts:
+  > **Phase 1 demo note:** the demo widget (`widget/fitw.js`) is currently plain vanilla JS, no framework / no build step — a deliberate demo-stage choice for fast iteration and data collection. Revisit React for the production bundle. (See PROGRESS.md "Decisions made".)
   ```html
   <div id="fitw" data-outlet="OUTLET_KEY" data-product="PRODUCT_SKU"></div>
   <script src="https://cdn.yourdomain.com/fitw.js" async></script>

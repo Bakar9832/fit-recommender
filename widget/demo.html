@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fit Recommender — demo</title>
+    <style>
+      body { font-family: system-ui, Arial, sans-serif; margin: 40px auto; max-width: 560px; color: #1c2127; }
+      .hint { color: #555; font-size: 13px; line-height: 1.5; }
+      code { background: #f4f6f8; padding: 1px 4px; border-radius: 4px; }
+      .try { background: #f9fafb; border: 1px solid #eee; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <h1>Fit Recommender — demo</h1>
+    <p class="hint">
+      Hosts the widget against the seeded demo outlet (<code>demo-outlet</code>) and product
+      <code>DEMO-001</code>. The widget below loads <code>fitw.js</code> and calls the API at
+      <code>data-api</code>. Make sure the API is running (<code>npm run dev</code>) on
+      <code>http://localhost:3000</code>.
+    </p>
+
+    <div class="try">
+      Try a clear pick — bust <b>33</b>, waist <b>25</b>, hip <b>35</b>.<br />
+      Try a between-sizes case — bust <b>34</b>, waist <b>26.5</b>, hip <b>36</b>.
+    </div>
+
+    <!-- Embed shape per spec §2: a div with data-* attributes + a script tag. -->
+    <div
+      id="fitw"
+      data-outlet="demo-outlet"
+      data-product="DEMO-001"
+      data-api="http://localhost:3000"
+      style="margin-top: 20px"
+    ></div>
+    <script src="./fitw.js" async></script>
+  </body>
+</html>

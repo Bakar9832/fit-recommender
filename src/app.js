@@ -7,6 +7,20 @@ import adminRouter from "./routes/admin.js";
 // and mounted by the server entry point.
 export function createApp() {
   const app = express();
+
+  // CORS — the embeddable widget calls this API cross-origin from the outlet's
+  // page. Phase 1 demo: allow any origin (the public recommend endpoint carries
+  // no cookies; admin auth is a header token, not credentials). Tighten to an
+  // allow-list before production. No `cors` dep — this is all we need.
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Admin-Token");
+    res.header("Access-Control-Max-Age", "600");
+    if (req.method === "OPTIONS") return res.sendStatus(204);
+    next();
+  });
+
   app.use(express.json());
   // Raw CSV body for the bulk-import endpoint (spec §8).
   app.use(express.text({ type: ["text/csv", "text/plain"], limit: "2mb" }));

@@ -4,12 +4,11 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> Validation pass (spec §9) — FIELD WORK now unblocked by tooling. All Phase 1 build items are
-> complete and the accuracy harness is ready (`npm run validate <file>`). Next concrete step:
-> gather one real outlet's chart + 8–10 real products + 5–10 people's known measurements & true
-> best size, encode them as harness cases, run it, and tune ease bands (§4.2) + weights (§4.4) on
-> the misses (ideally with a tailor). Engine logic stays put until real data says otherwise.
-> Don't pitch accuracy until this passes.
+> Deployment: hosted Postgres + API + static frontend. Stand up the API (Express) against a hosted
+> Postgres (run `prisma migrate deploy` + seed), host the static widget/demo (CDN/static host), and
+> lock CORS down to the real outlet origin(s) instead of `*`. Set DATABASE_URL + any config via env.
+> Backend, engine harness, and the demo widget are all built + verified locally. (Field-work §9
+> validation pass remains open in parallel — not a code blocker for deploy.)
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -22,12 +21,21 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Admin CRUD: templates, rows, products
 - [x] CSV bulk import (spec §8)
 - [x] Unit tests for the fit engine (pure functions, several body/size cases)
-- [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  ← only item left
+- [x] §9 accuracy harness (dev tooling): `npm run validate <file>` — measures, doesn't tune
+- [x] Embeddable widget (`widget/fitw.js`, vanilla JS) + demo page (`widget/demo.html`) + CORS on API
+- [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
+- [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
 ## Decisions made (don't relitigate)
 - DB: Postgres + Prisma (chosen for "pick once, never swap"; migration friction solved by Prisma).
 - Storage: size rows are a relation on the template, not JSON. Products reference a shared template.
 - Engine is pure functions, no DB calls inside the math.
+- Demo widget is **vanilla JS, no framework, no build step** (`widget/fitw.js`) — a deliberate
+  demo-stage choice over spec §2's React, for fast iteration + data collection. Revisit React for the
+  production bundle. Note added to spec §2. The file uses no import/export so it loads as a classic
+  browser script AND can be imported in Node (pure helpers on `globalThis.__FITW__`) for verification.
+- CORS: manual header middleware in `app.js` (no `cors` dep); currently `*` for the demo — lock to
+  the outlet origin(s) at deploy.
 
 ## Open questions / to confirm
 - Ease bands and selection weights are starting guesses (spec §4.2/§4.4) — confirm against a real outlet's chart + tailor during the validation pass.
@@ -35,6 +43,19 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-27 — Built Phase 1 frontend (rough demo). `widget/fitw.js`: single self-contained vanilla-JS
+  widget (no framework/build) — mounts into `[data-outlet][data-product]` (+ optional `data-api`),
+  renders bust/waist/hip (required) + height (optional) form with 20–80in client sanity, POSTs
+  `/v1/fit/recommend`, renders §4.6. Garment-only wording (rule #1): recommended size prominent, per-zone
+  notes w/ class dot, length_note, abstract 3-width symmetric silhouette SVG (§6). Between-sizes: medium
+  confidence → co-equal neutral paragraph ("You're between M and L… comes down to the look you prefer");
+  else if alt → light neutral aside. No body adjectives, no percentages. `widget/demo.html` hosts it vs
+  demo-outlet/DEMO-001. CORS: manual middleware in `app.js` (no dep), `*` for now, OPTIONS→204. Verified:
+  CORS preflight + POST headers via curl; Node render-check (imports widget pure fns via
+  `globalThis.__FITW__`, hits real API) rendered clear-pick (M/high) and between-sizes (L/medium) HTML
+  correctly. 46 tests still pass. Decisions logged + spec §2 note added. Next: deployment (hosted PG +
+  API + static frontend, lock CORS). Gotcha: fitw.js intentionally uses no import/export so it's valid
+  as BOTH a classic browser <script> and a Node ESM import (DOM access guarded by `typeof document`).
 - 2026-06-27 — Built §9 accuracy harness (DEV TOOLING, not a product endpoint). `tools/validate.js`
   + `tools/validation-example.json`; `npm run validate <file>`. Loads JSON `{templates,cases}` or CSV
   cases (`--templates <json>`, reuses `src/lib/csv.js`); each case runs through the REAL `recommendFit`
