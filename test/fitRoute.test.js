@@ -10,12 +10,24 @@ let server;
 let baseUrl;
 
 beforeAll(async () => {
-  await seedDemo(prisma);
+  const { outlet, template } = await seedDemo(prisma);
+  // A product with NO model-reference fields, to assert model_reference: null.
+  await prisma.product.upsert({
+    where: { outletId_sku: { outletId: outlet.id, sku: "DEMO-NOMODEL" } },
+    update: { templateId: template.id, modelHeight: null, modelSizeWorn: null },
+    create: {
+      outletId: outlet.id,
+      templateId: template.id,
+      sku: "DEMO-NOMODEL",
+      garmentType: "two_piece",
+    },
+  });
   server = createApp().listen(0);
   baseUrl = `http://127.0.0.1:${server.address().port}`;
 });
 
 afterAll(async () => {
+  await prisma.product.deleteMany({ where: { sku: "DEMO-NOMODEL" } });
   await new Promise((resolve) => server.close(resolve));
   await prisma.$disconnect();
 });
@@ -43,10 +55,48 @@ describe("POST /v1/fit/recommend", () => {
     expect(body.alternative_size).toBe("L");
     expect(body.zones.bust).toEqual({
       class: "good",
-      note: "Sits comfortably at the bust.",
+      note: "Sits comfortably at the bust, with easy room to move.",
     });
     expect(body.silhouette).toEqual({ bust: 37, waist: 29, hip: 39 });
     expect(body.length_note).toBeNull(); // seeded rows have no kameezLength
+  });
+
+  it("includes the multi-size view, size_guide, and model_reference", async () => {
+    const res = await recommend({
+      outlet_key: "demo-outlet",
+      sku: "DEMO-001",
+      measurements: { bust: 33, waist: 25, hip: 35 },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    // sizes[] covers all chart sizes, recommended flagged.
+    expect(body.sizes.map((s) => s.size)).toEqual(["S", "M", "L", "XL"]);
+    expect(body.sizes.filter((s) => s.recommended).map((s) => s.size)).toEqual(["M"]);
+    expect(body.sizes.find((s) => s.size === "M").summary).toBe("Your best fit");
+
+    // size_guide = garment measurements per size (the seeded chart).
+    expect(body.size_guide).toEqual([
+      { size: "S", bust: 35, waist: 27, hip: 37, kameezLength: null, trouserWaist: null, trouserLength: null },
+      { size: "M", bust: 37, waist: 29, hip: 39, kameezLength: null, trouserWaist: null, trouserLength: null },
+      { size: "L", bust: 39, waist: 31, hip: 41, kameezLength: null, trouserWaist: null, trouserLength: null },
+      { size: "XL", bust: 41, waist: 33, hip: 43, kameezLength: null, trouserWaist: null, trouserLength: null },
+    ]);
+
+    // model_reference from the seeded demo product.
+    expect(body.model_reference).toEqual({ height: "5'6\"", size_worn: "M" });
+  });
+
+  it("returns model_reference: null for a product with no model fields", async () => {
+    const res = await recommend({
+      outlet_key: "demo-outlet",
+      sku: "DEMO-NOMODEL",
+      measurements: { bust: 33, waist: 25, hip: 35 },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.model_reference).toBeNull();
+    expect(body.sizes).toHaveLength(4); // multi-size still present
   });
 
   it("returns 422 for an implausible measurement (out of 20–80in)", async () => {

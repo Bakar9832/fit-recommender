@@ -4,11 +4,11 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> Deployment: hosted Postgres + API + static frontend. Stand up the API (Express) against a hosted
-> Postgres (run `prisma migrate deploy` + seed), host the static widget/demo (CDN/static host), and
-> lock CORS down to the real outlet origin(s) instead of `*`. Set DATABASE_URL + any config via env.
-> Backend, engine harness, and the demo widget are all built + verified locally. (Field-work §9
-> validation pass remains open in parallel — not a code blocker for deploy.)
+> Widget render of the enriched recommendation (FRONTEND): show the multi-size ladder (`sizes[]` with
+> per-size summary + per-zone notes, recommended flagged), the `model_reference` ("Our model is 5'6\"
+> and wears M", omit when null), and the `size_guide` chart. Visual layer only — the backend contract
+> is done + verified. Keep Ink & Blush, garment-only wording, dual-mode, scoped styles.
+> (Then: deployment. Field-work §9 validation pass still open in parallel.)
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -23,6 +23,9 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Unit tests for the fit engine (pure functions, several body/size cases)
 - [x] §9 accuracy harness (dev tooling): `npm run validate <file>` — measures, doesn't tune
 - [x] Embeddable widget (`widget/fitw.js`, vanilla JS) + demo page (`widget/demo.html`) + CORS on API
+- [x] Widget restyle — "Ink & Blush" palette + human-figure silhouette (visual-only)
+- [x] Recommendation enrichment (backend): multi-size output + richer wording + model-ref + size-guide
+- [ ] Widget render of enrichment: multi-size ladder + model_reference + size_guide
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -36,6 +39,11 @@ Work the **Current task** only. Don't start the next item until the current one 
   browser script AND can be imported in Node (pure helpers on `globalThis.__FITW__`) for verification.
 - CORS: manual header middleware in `app.js` (no `cors` dep); currently `*` for the demo — lock to
   the outlet origin(s) at deploy.
+- Widget visual style = **"Ink & Blush"** (light): navy #2E4A63 / blush #C99AA4 on white surface,
+  page #F6F7F9, fonts Libre Caslon Display / Hanken Grotesk / IBM Plex Mono. Page structure + field
+  layout from `widget/page-reference.html`; the silhouette is the neutral human figure reproduced
+  EXACTLY from `widget/figure-reference.html` (driven by the §4.6 silhouette block + entered height).
+  Restyle was VISUAL-ONLY — no change to fit logic, API call, §4.6 contract, wording, dual-mode, CORS.
 
 ## Open questions / to confirm
 - Ease bands and selection weights are starting guesses (spec §4.2/§4.4) — confirm against a real outlet's chart + tailor during the validation pass.
@@ -43,6 +51,34 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-27 — Enriched the recommendation (BACKEND only). Migration `product_model_reference` added
+  Product.modelHeight (String?) + modelSizeWorn (String?) (display-only, NOT engine inputs); seed demo
+  product now "5'6\"" / "M". `recommendFit()` now also returns `sizes[]` covering EVERY chart size
+  (size, recommended flag, per-zone {class,note}, garment-focused `summary` via new `summaryFor(role)`:
+  best/fitted/roomier/tight/loose) — all existing §4.6 fields kept. Wording §5 enriched to fuller,
+  natural per-zone phrasing (still garment-only, no body adjectives, no numbers). Route adds `size_guide`
+  (chart rows) + `model_reference` ({height,size_worn} or null) — no extra query (already loaded). Spec
+  updated: §3 schema+note, §4.6 output (sizes[]) + API-envelope note. Tests 46→55: sizes-array coverage
+  + recommended flag + no-body-adjective/no-number guard across ALL sizes' notes & summaries; route
+  asserts sizes[]/size_guide/model_reference and a no-model product → model_reference null. Verified full
+  enriched JSON via curl. Next: widget render of the enrichment. Gotcha: enriching wording changed the
+  exact note strings → updated the old exact-string assertions in fitEngine/fitRoute/wording tests.
+- 2026-06-27 — VISUAL-ONLY restyle of widget + demo to "Ink & Blush" (light: navy #2E4A63 / blush
+  #C99AA4 / white / #F6F7F9; fonts Libre Caslon Display + Hanken Grotesk + IBM Plex Mono for all
+  numbers/size letter). `widget/fitw.js` now renders a 2-panel card (form | result) matching
+  `page-reference.html` layout (bust full-width, waist+hip row, optional height, mono inputs w/ "in"
+  suffix), scoped under `.fitw` (injects fonts + style once), navy button w/ navy focus ring, dots
+  good=navy / snug+relaxed=blush / too_tight+too_loose=#BC5B4C. Silhouette swapped to the neutral human
+  figure reproduced EXACTLY from `figure-reference.html` (`silhouette(m,stroke,soft)`), driven by the
+  §4.6 silhouette block + entered height (defaults to 64 when absent). `demo.html` = page chrome
+  (eyebrow + Caslon h1 + lede, measuring-tape tick-rule divider, widget card, 3-item value strip,
+  footer). UNCHANGED: fit logic, API call, §4.6 render contract, garment-only wording (between-sizes
+  paragraph + aside verbatim), dual-mode `globalThis.__FITW__`, CORS. Verified: 46 tests + Node
+  render-check pass; clean pick (M/"Confident fit") and between-sizes (L/"Between sizes") render with
+  navy figure + blush measure-lines. Quality floor: responsive (<=720 single-col), focus-visible ring,
+  prefers-reduced-motion honored, styles scoped. Next: deployment. Note: the reference figure clamps
+  circumference half-widths, so adjacent sizes look similar unless height differs — reproduced as-is
+  (told not to redesign the figure).
 - 2026-06-27 — Built Phase 1 frontend (rough demo). `widget/fitw.js`: single self-contained vanilla-JS
   widget (no framework/build) — mounts into `[data-outlet][data-product]` (+ optional `data-api`),
   renders bust/waist/hip (required) + height (optional) form with 20–80in client sanity, POSTs

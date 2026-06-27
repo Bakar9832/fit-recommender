@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Silhouette preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --emerald:#143A30;--emerald-2:#1C4A3E;--emerald-line:#2E6B58;
+    --brass:#B98A46;--brass-lite:#D9B877;--cream:#F1EADD;--cream-dim:#C9BFAE;
+    --mono:"IBM Plex Mono",monospace;--body:"Hanken Grotesk",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:#0e1f1a;color:var(--cream);font-family:var(--body);padding:28px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;max-width:860px;margin:0 auto 22px;}
+  .fig{background:var(--emerald);border-radius:16px;padding:22px 16px 18px;text-align:center;position:relative;overflow:hidden;}
+  .fig::before{content:"";position:absolute;top:0;left:0;right:0;height:7px;background:repeating-linear-gradient(90deg,rgba(217,184,119,.5) 0 1px,transparent 1px 13px);}
+  .fig svg{width:120px;height:auto;margin:6px auto 12px;display:block;}
+  .meas{font-family:var(--mono);font-size:12px;color:var(--brass-lite);letter-spacing:.06em;}
+  .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--cream-dim);margin-top:4px;}
+  .controls{max-width:860px;margin:0 auto;background:var(--emerald-2);border-radius:14px;padding:18px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;}
+  .controls h2{font-size:14px;margin:0 12px 0 0;font-weight:600;color:var(--cream-dim);font-family:var(--mono);letter-spacing:.1em;text-transform:uppercase;}
+  .ctl{display:flex;flex-direction:column;gap:4px;}
+  .ctl label{font-size:11px;color:var(--cream-dim);font-family:var(--mono);}
+  .ctl input{width:120px;}
+  .note{max-width:860px;margin:18px auto 0;font-size:13px;color:#9fb3a9;line-height:1.5;}
+</style>
+</head>
+<body>
+  <div class="grid" id="grid"></div>
+
+  <div class="controls">
+    <h2>Try it</h2>
+    <div class="ctl"><label>Bust <span id="vb">37</span>"</label><input id="b" type="range" min="30" max="46" value="37" step="0.5"></div>
+    <div class="ctl"><label>Waist <span id="vw">29</span>"</label><input id="w" type="range" min="24" max="42" value="29" step="0.5"></div>
+    <div class="ctl"><label>Hip <span id="vh">39</span>"</label><input id="h" type="range" min="32" max="48" value="39" step="0.5"></div>
+    <div class="ctl"><label>Height <span id="vt">64</span>"</label><input id="t" type="range" min="58" max="72" value="64" step="0.5"></div>
+  </div>
+
+  <p class="note">A flat, single-tone outline figure — recognizably a person, deliberately plain (like a tailoring-pattern figure). Bust, waist, hip and height shift the proportions gently. The four cards above are fixed reference bodies; the sliders redraw the first card live. Neutrality comes from it being schematic and unadorned, not from removing its humanity.</p>
+
+<script>
+/* Neutral human silhouette — proportions driven by measurements, brass linework. */
+function silhouette(m){
+  // normalize measurements to half-widths (px) around a center line at x=60
+  var cx = 60;
+  var scale = 1.0;
+  var bustHW  = clamp((m.bust  - 24) * 0.9, 13, 30) * scale;
+  var waistHW = clamp((m.waist - 22) * 0.85, 10, 26) * scale;
+  var hipHW   = clamp((m.hip   - 26) * 0.9, 14, 32) * scale;
+  var shoulderHW = bustHW + 3;
+
+  // vertical layout scaled by height (58–72in → figure 150–186 tall area)
+  var H = clamp((m.height - 58) * 2.4 + 150, 150, 188);
+  var headR = 9;
+  var neckY = 16 + (H-150)*0.04;
+  var shoulderY = neckY + 12;
+  var bustY = shoulderY + 22;
+  var waistY = bustY + 26 + (H-150)*0.12;
+  var hipY = waistY + 24 + (H-150)*0.12;
+  var hemY = hipY + 60 + (H-150)*0.55;
+  var ankleHW = hipHW*0.34;
+
+  function L(x,y){return x.toFixed(1)+' '+y.toFixed(1);}
+  // body outline: shoulders -> bust -> waist -> hip -> down outer legs -> ankles -> up inner
+  var bodyR =
+    'M '+L(cx-shoulderHW, shoulderY)+
+    ' C '+L(cx-shoulderHW,shoulderY+6)+' '+L(cx-bustHW,bustY-8)+' '+L(cx-bustHW,bustY)+
+    ' C '+L(cx-bustHW,bustY+8)+' '+L(cx-waistHW,waistY-10)+' '+L(cx-waistHW,waistY)+
+    ' C '+L(cx-waistHW,waistY+10)+' '+L(cx-hipHW,hipY-12)+' '+L(cx-hipHW,hipY)+
+    ' L '+L(cx-ankleHW-6, hemY)+
+    ' L '+L(cx-1, hemY)+
+    ' L '+L(cx-1, hipY+8)+
+    ' L '+L(cx+1, hipY+8)+
+    ' L '+L(cx+1, hemY)+
+    ' L '+L(cx+ankleHW+6, hemY)+
+    ' L '+L(cx+hipHW, hipY)+
+    ' C '+L(cx+hipHW,hipY-12)+' '+L(cx+waistHW,waistY+10)+' '+L(cx+waistHW,waistY)+
+    ' C '+L(cx+waistHW,waistY-10)+' '+L(cx+bustHW,bustY+8)+' '+L(cx+bustHW,bustY)+
+    ' C '+L(cx+bustHW,bustY-8)+' '+L(cx+shoulderHW,shoulderY+6)+' '+L(cx+shoulderHW,shoulderY)+
+    ' Z';
+
+  // arms (simple, at sides)
+  var armL = 'M '+L(cx-shoulderHW+1,shoulderY+2)+' C '+L(cx-shoulderHW-7,bustY)+' '+L(cx-waistHW-9,waistY)+' '+L(cx-waistHW-7,waistY+8);
+  var armR = 'M '+L(cx+shoulderHW-1,shoulderY+2)+' C '+L(cx+shoulderHW+7,bustY)+' '+L(cx+waistHW+9,waistY)+' '+L(cx+waistHW+7,waistY+8);
+
+  return '<svg viewBox="0 0 120 '+(hemY+12)+'" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +'<circle cx="'+cx+'" cy="'+(neckY-headR-1)+'" r="'+headR+'" stroke="#D9B877" stroke-width="1.5"/>'
+    +'<line x1="'+(cx-3)+'" y1="'+(neckY)+'" x2="'+(cx-3)+'" y2="'+(shoulderY)+'" stroke="#D9B877" stroke-width="1.5"/>'
+    +'<line x1="'+(cx+3)+'" y1="'+(neckY)+'" x2="'+(cx+3)+'" y2="'+(shoulderY)+'" stroke="#D9B877" stroke-width="1.5"/>'
+    +'<path d="'+bodyR+'" stroke="#D9B877" stroke-width="1.6" stroke-linejoin="round"/>'
+    +'<path d="'+armL+'" stroke="#D9B877" stroke-width="1.4"/>'
+    +'<path d="'+armR+'" stroke="#D9B877" stroke-width="1.4"/>'
+    // subtle measure ticks at bust / waist / hip
+    +'<line x1="'+(cx-bustHW)+'" y1="'+bustY+'" x2="'+(cx+bustHW)+'" y2="'+bustY+'" stroke="#B98A46" stroke-width="0.8" stroke-dasharray="1.5 3" opacity="0.7"/>'
+    +'<line x1="'+(cx-waistHW)+'" y1="'+waistY+'" x2="'+(cx+waistHW)+'" y2="'+waistY+'" stroke="#B98A46" stroke-width="0.8" stroke-dasharray="1.5 3" opacity="0.7"/>'
+    +'<line x1="'+(cx-hipHW)+'" y1="'+hipY+'" x2="'+(cx+hipHW)+'" y2="'+hipY+'" stroke="#B98A46" stroke-width="0.8" stroke-dasharray="1.5 3" opacity="0.7"/>'
+    +'</svg>';
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+var refs=[
+  {label:"Petite",  bust:33, waist:25, hip:35, height:60},
+  {label:"Medium",  bust:37, waist:29, hip:39, height:64},
+  {label:"Curvier", bust:40, waist:30, hip:44, height:65},
+  {label:"Taller",  bust:38, waist:31, hip:40, height:70}
+];
+var grid=document.getElementById("grid");
+function card(m,live){
+  return '<div class="fig"'+(live?' id="liveCard"':'')+'>'+silhouette(m)
+    +'<div class="meas">'+m.bust+' / '+m.waist+' / '+m.hip+'"</div>'
+    +'<div class="lab">'+(live?'Live (sliders)':m.label)+'</div></div>';
+}
+function init(){
+  var live={bust:37,waist:29,hip:39,height:64};
+  grid.innerHTML = card(live,true) + refs.slice(1).map(function(m){return card(m,false);}).join("");
+}
+init();
+function upd(){
+  var m={bust:+b.value,waist:+w.value,hip:+h.value,height:+t.value};
+  vb.textContent=b.value;vw.textContent=w.value;vh.textContent=h.value;vt.textContent=t.value;
+  var c=document.getElementById("liveCard");
+  c.innerHTML=silhouette(m)+'<div class="meas">'+m.bust+' / '+m.waist+' / '+m.hip+'"</div><div class="lab">Live (sliders)</div>';
+}
+["b","w","h","t"].forEach(function(id){document.getElementById(id).addEventListener("input",upd);});
+</script>
+</body>
+</html>

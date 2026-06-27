@@ -9,7 +9,7 @@ import {
   classifyZone,
   bandsFor,
 } from "./easeBands.js";
-import { noteFor } from "./wording.js";
+import { noteFor, summaryFor } from "./wording.js";
 import { lengthNote } from "./length.js";
 
 // --- Selection tuning (spec §4.4, starting guesses; tune in validation pass) ---
@@ -85,18 +85,25 @@ export function recommendFit(body, product) {
 
   const confidence = scoreConfidence(winner, alternative);
 
-  // Build the per-zone notes (garment-focused wording, §5).
-  const zones = {};
-  for (const zone of Object.keys(winner.zones)) {
-    const cls = winner.zones[zone].class;
-    zones[zone] = { class: cls, note: noteFor(zone, cls) };
-  }
+  // Build the per-zone notes for the recommended size (garment-focused, §5).
+  const zones = zonesWithNotes(winner.zones);
+
+  // Multi-size view: every size in the chart, in order, each with its own
+  // per-zone notes and a garment-focused overall summary. The recommended size
+  // is flagged here too. (Keeps the single-size fields above for compatibility.)
+  const sizes = scored.map((entry) => ({
+    size: entry.row.sizeLabel,
+    recommended: entry === winner,
+    zones: zonesWithNotes(entry.zones),
+    summary: summaryFor(sizeRole(entry, winner)),
+  }));
 
   return {
     recommended_size: winner.row.sizeLabel,
     confidence,
     alternative_size: alternative ? alternative.row.sizeLabel : null,
     zones,
+    sizes,
     length_note: lengthNote(winner.row.kameezLength, body.height),
     silhouette: {
       bust: winner.row.bust ?? null,
@@ -104,6 +111,32 @@ export function recommendFit(body, product) {
       hip: winner.row.hip ?? null,
     },
   };
+}
+
+/** Attach garment-focused notes (§5) to a scored size's per-zone classes. */
+function zonesWithNotes(scoredZones) {
+  const out = {};
+  for (const zone of Object.keys(scoredZones)) {
+    const cls = scoredZones[zone].class;
+    out[zone] = { class: cls, note: noteFor(zone, cls) };
+  }
+  return out;
+}
+
+/**
+ * Garment-focused role for a size in the multi-size view:
+ *   best    — the recommended size
+ *   tight   — has any too_tight zone
+ *   loose   — has any too_loose zone
+ *   fitted  — otherwise, smaller than the recommended size (sits closer)
+ *   roomier — otherwise, larger than the recommended size (more room)
+ */
+function sizeRole(entry, winner) {
+  if (entry === winner) return "best";
+  const classes = Object.values(entry.zones).map((z) => z.class);
+  if (classes.includes("too_tight")) return "tight";
+  if (classes.includes("too_loose")) return "loose";
+  return entry.row.sortOrder < winner.row.sortOrder ? "fitted" : "roomier";
 }
 
 /**

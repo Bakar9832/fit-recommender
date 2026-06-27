@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Palette options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;}
+  body{margin:0;background:#33312e;padding:26px 18px;
+    font-family:"Hanken Grotesk",system-ui,sans-serif;}
+  .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;max-width:980px;margin:0 auto;}
+  .opt{border-radius:18px;overflow:hidden;background:var(--bg);color:var(--ink);
+    box-shadow:0 20px 50px -26px rgba(0,0,0,.6);}
+  .opt .name{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--accent);padding:16px 20px 0;}
+  .opt .inner{padding:14px 20px 24px;}
+  .surf{background:var(--surf);border:1px solid var(--line);border-radius:14px;padding:20px;}
+  .size-head{display:flex;align-items:flex-end;gap:12px;}
+  .size-big{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:46px;line-height:.85;color:var(--accent);}
+  .size-cap{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);padding-bottom:6px;}
+  .chip{display:inline-block;margin:10px 0 4px;font-size:11.5px;font-weight:600;
+    color:var(--surf);background:var(--accent);padding:4px 11px;border-radius:999px;}
+  .silho{display:flex;justify-content:center;margin:8px 0 12px;}
+  .silho svg{width:104px;height:auto;}
+  .zrow{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--ink);
+    padding:9px 0;border-top:1px solid var(--line);}
+  .zrow:first-of-type{border-top:1px solid var(--line);margin-top:4px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none;}
+  .zname{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--muted);width:46px;flex:none;}
+  .hexline{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--muted);
+    margin-top:14px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .sw{width:13px;height:13px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,.12);}
+
+  /* Option 1 — Wine */
+  .wine{--bg:#FBF7F4;--surf:#FFFFFF;--ink:#2A2622;--accent:#8C2F4D;--muted:#9A8E86;--line:#EEE5DD;}
+  /* Option 2 — Ink & blush */
+  .ink{--bg:#F6F7F9;--surf:#FFFFFF;--ink:#1C2A3A;--accent:#2E4A63;--muted:#8893A1;--line:#E7EAEF;}
+  /* Option 3 — Mauve */
+  .mauve{--bg:#F3EEEA;--surf:#FCFAF8;--ink:#322A30;--accent:#6E4A5E;--muted:#9B8E96;--line:#E6DBE1;}
+</style>
+</head>
+<body>
+  <div class="row" id="row"></div>
+
+<script>
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+/* Neutral human figure — rounded sloping shoulders, proportions from measurements. */
+function silhouette(m, stroke, soft){
+  var cx=60;
+  var bustHW  = clamp((m.bust  - 24)*0.85, 13, 28);
+  var waistHW = clamp((m.waist - 22)*0.80, 10, 24);
+  var hipHW   = clamp((m.hip   - 26)*0.85, 14, 30);
+  var shoulderHW = bustHW + 3.5;
+  var ankleHW = hipHW*0.32;
+  var neckHW = 3.6;
+  var hf = clamp((m.height-64)*1.3, -8, 12);
+
+  var headCy=11, headR=8.5;
+  var neckBaseY=24, shoulderY=31, bustY=50;
+  var waistY=76 + hf*0.4, hipY=102 + hf*0.8, hemY=168 + hf*1.6;
+
+  function L(x,y){return x.toFixed(1)+' '+y.toFixed(1);}
+
+  var body =
+    'M '+L(cx-neckHW,neckBaseY)+
+    ' C '+L(cx-neckHW-3,neckBaseY+2)+' '+L(cx-shoulderHW+5,shoulderY-3)+' '+L(cx-shoulderHW,shoulderY)+   // rounded L shoulder
+    ' C '+L(cx-shoulderHW-1,shoulderY+8)+' '+L(cx-bustHW-1,bustY-10)+' '+L(cx-bustHW,bustY)+
+    ' C '+L(cx-bustHW,bustY+9)+' '+L(cx-waistHW,waistY-11)+' '+L(cx-waistHW,waistY)+
+    ' C '+L(cx-waistHW,waistY+11)+' '+L(cx-hipHW,hipY-13)+' '+L(cx-hipHW,hipY)+
+    ' C '+L(cx-hipHW,hipY+10)+' '+L(cx-ankleHW-7,hemY-32)+' '+L(cx-ankleHW-6,hemY)+
+    ' L '+L(cx-1.6,hemY)+' L '+L(cx-1.6,hipY+12)+' L '+L(cx+1.6,hipY+12)+' L '+L(cx+1.6,hemY)+
+    ' L '+L(cx+ankleHW+6,hemY)+
+    ' C '+L(cx+ankleHW+7,hemY-32)+' '+L(cx+hipHW,hipY+10)+' '+L(cx+hipHW,hipY)+
+    ' C '+L(cx+hipHW,hipY-13)+' '+L(cx+waistHW,waistY+11)+' '+L(cx+waistHW,waistY)+
+    ' C '+L(cx+waistHW,waistY-11)+' '+L(cx+bustHW,bustY+9)+' '+L(cx+bustHW,bustY)+
+    ' C '+L(cx+bustHW+1,bustY-10)+' '+L(cx+shoulderHW+1,shoulderY+8)+' '+L(cx+shoulderHW,shoulderY)+
+    ' C '+L(cx+shoulderHW-5,shoulderY-3)+' '+L(cx+neckHW+3,neckBaseY+2)+' '+L(cx+neckHW,neckBaseY)+
+    ' Z';
+
+  var armL='M '+L(cx-shoulderHW+0.5,shoulderY+1)+' C '+L(cx-shoulderHW-6,bustY)+' '+L(cx-waistHW-8,waistY)+' '+L(cx-waistHW-5,hipY-10);
+  var armR='M '+L(cx+shoulderHW-0.5,shoulderY+1)+' C '+L(cx+shoulderHW+6,bustY)+' '+L(cx+waistHW+8,waistY)+' '+L(cx+waistHW+5,hipY-10);
+
+  function ml(y,hw){return '<line x1="'+(cx-hw)+'" y1="'+y+'" x2="'+(cx+hw)+'" y2="'+y+'" stroke="'+soft+'" stroke-width="0.8" stroke-dasharray="1.5 3" opacity="0.75"/>';}
+
+  return '<svg viewBox="0 0 120 '+(hemY+12).toFixed(0)+'" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+    +'<circle cx="'+cx+'" cy="'+headCy+'" r="'+headR+'" stroke="'+stroke+'" stroke-width="1.6"/>'
+    +'<path d="M '+L(cx-neckHW,neckBaseY)+' L '+L(cx-neckHW+0.4,headCy+headR-1.5)+'" stroke="'+stroke+'" stroke-width="1.4"/>'
+    +'<path d="M '+L(cx+neckHW,neckBaseY)+' L '+L(cx+neckHW-0.4,headCy+headR-1.5)+'" stroke="'+stroke+'" stroke-width="1.4"/>'
+    +'<path d="'+body+'" stroke="'+stroke+'" stroke-width="1.7" stroke-linejoin="round"/>'
+    +'<path d="'+armL+'" stroke="'+stroke+'" stroke-width="1.4"/>'
+    +'<path d="'+armR+'" stroke="'+stroke+'" stroke-width="1.4"/>'
+    +ml(bustY,bustHW)+ml(waistY,waistHW)+ml(hipY,hipHW)
+    +'</svg>';
+}
+
+var body={bust:37,waist:30,hip:39,height:64};
+var opts=[
+  {cls:"wine", name:"01 · Wine",  stroke:"#8C2F4D", soft:"#C98BA0", hexes:["#FBF7F4","#8C2F4D","#2A2622"]},
+  {cls:"ink",  name:"02 · Ink & blush", stroke:"#2E4A63", soft:"#C99AA4", hexes:["#F6F7F9","#2E4A63","#1C2A3A"]},
+  {cls:"mauve",name:"03 · Mauve", stroke:"#6E4A5E", soft:"#A98498", hexes:["#F3EEEA","#6E4A5E","#322A30"]}
+];
+var notes=[["bust","Sits comfortably at the bust."],["waist","A little loose at the waist."],["hip","Fitted at the hip."]];
+
+document.getElementById("row").innerHTML = opts.map(function(o){
+  return '<div class="opt '+o.cls+'"><div class="name">'+o.name+'</div><div class="inner"><div class="surf">'
+    +'<div class="size-head"><span class="size-big">M</span><span class="size-cap">Recommended<br>size</span></div>'
+    +'<span class="chip">Confident fit</span>'
+    +'<div class="silho">'+silhouette(body,o.stroke,o.soft)+'</div>'
+    +notes.map(function(n){return '<div class="zrow"><span class="dot"></span><span class="zname">'+n[0]+'</span><span>'+n[1]+'</span></div>';}).join("")
+    +'<div class="hexline">'+o.hexes.map(function(h){return '<span class="sw" style="background:'+h+'"></span>'+h;}).join(" ")+'</div>'
+    +'</div></div></div>';
+}).join("");
+</script>
+</body>
+</html>

@@ -1,38 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fit Recommender — demo</title>
+    <title>Fitting Room — find your size</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- id="fitw-fonts" so the widget reuses this link instead of injecting a duplicate -->
+    <link
+      id="fitw-fonts"
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
     <style>
-      body { font-family: system-ui, Arial, sans-serif; margin: 40px auto; max-width: 560px; color: #1c2127; }
-      .hint { color: #555; font-size: 13px; line-height: 1.5; }
-      code { background: #f4f6f8; padding: 1px 4px; border-radius: 4px; }
-      .try { background: #f9fafb; border: 1px solid #eee; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+      :root {
+        --paper: #f6f7f9;
+        --surface: #ffffff;
+        --navy: #2e4a63;
+        --blush: #c99aa4;
+        --ink: #1c2a3a;
+        --muted: #8893a1;
+        --line: #e7eaef;
+        --display: "Libre Caslon Display", Georgia, serif;
+        --body: "Hanken Grotesk", system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1000px; margin: 0 auto; padding: clamp(28px, 5vw, 64px) clamp(20px, 4vw, 40px) 56px; }
+
+      /* header */
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+        color: var(--navy); font-weight: 500;
+        display: flex; align-items: center; gap: 12px;
+        opacity: 0; transform: translateY(8px); animation: rise .7s .05s forwards;
+      }
+      .eyebrow::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+      h1 {
+        font-family: var(--display); font-weight: 400;
+        font-size: clamp(34px, 6vw, 60px); line-height: 1.02; letter-spacing: -.01em;
+        color: var(--navy); margin: 18px 0 14px; max-width: 14ch;
+        opacity: 0; transform: translateY(10px); animation: rise .7s .14s forwards;
+      }
+      .lede {
+        font-size: clamp(15px, 2.1vw, 18px); color: #4d5a68; max-width: 46ch; margin: 0 0 30px;
+        opacity: 0; transform: translateY(10px); animation: rise .7s .22s forwards;
+      }
+
+      /* measuring-tape tick rule (the signature motif) */
+      .tape {
+        position: relative; height: 34px; margin-bottom: 6px;
+        border-top: 1px solid var(--line);
+        background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 16px);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+      }
+      .tape::before {
+        content: ""; position: absolute; inset: 0;
+        background: repeating-linear-gradient(90deg, var(--blush) 0 1.5px, transparent 1.5px 80px);
+        opacity: .55;
+      }
+
+      /* the widget mounts here and renders its own Ink & Blush card */
+      #fitw { margin-top: 30px; }
+
+      /* value strip (for the outlet / buyer) */
+      .props { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 46px; }
+      .prop .n { font-family: var(--mono); font-size: 12px; color: var(--blush); letter-spacing: .1em; }
+      .prop h3 { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--navy); margin: 8px 0 5px; }
+      .prop p { margin: 0; font-size: 13.5px; color: #57606c; }
+
+      footer {
+        margin-top: 46px; padding-top: 18px; border-top: 1px solid var(--line);
+        font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em;
+        color: var(--muted); text-transform: uppercase;
+      }
+
+      @keyframes rise { to { opacity: 1; transform: none; } }
+      @media (max-width: 720px) { .props { grid-template-columns: 1fr; gap: 18px; } }
+      @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
     </style>
   </head>
   <body>
-    <h1>Fit Recommender — demo</h1>
-    <p class="hint">
-      Hosts the widget against the seeded demo outlet (<code>demo-outlet</code>) and product
-      <code>DEMO-001</code>. The widget below loads <code>fitw.js</code> and calls the API at
-      <code>data-api</code>. Make sure the API is running (<code>npm run dev</code>) on
-      <code>http://localhost:3000</code>.
-    </p>
+    <main class="wrap">
+      <div class="eyebrow">Fitting Room · Demo</div>
+      <h1>Find your size before you buy.</h1>
+      <p class="lede">
+        Enter your measurements once. We'll tell you which size fits this piece — and how it'll sit.
+      </p>
 
-    <div class="try">
-      Try a clear pick — bust <b>33</b>, waist <b>25</b>, hip <b>35</b>.<br />
-      Try a between-sizes case — bust <b>34</b>, waist <b>26.5</b>, hip <b>36</b>.
-    </div>
+      <div class="tape" aria-hidden="true"></div>
 
-    <!-- Embed shape per spec §2: a div with data-* attributes + a script tag. -->
-    <div
-      id="fitw"
-      data-outlet="demo-outlet"
-      data-product="DEMO-001"
-      data-api="http://localhost:3000"
-      style="margin-top: 20px"
-    ></div>
-    <script src="./fitw.js" async></script>
+      <!-- Embed shape per spec §2: a div with data-* attributes + a script tag.
+           Hosts the widget against the seeded demo outlet + product DEMO-001.
+           Run the API first (npm run dev) on http://localhost:3000. -->
+      <div
+        id="fitw"
+        data-outlet="demo-outlet"
+        data-product="DEMO-001"
+        data-api="http://localhost:3000"
+      ></div>
+      <script src="./fitw.js" async></script>
+
+      <section class="props">
+        <div class="prop">
+          <span class="n">01</span>
+          <h3>Fewer returns</h3>
+          <p>Wrong-size returns are the biggest cost in online clothing. This cuts them at the source.</p>
+        </div>
+        <div class="prop">
+          <span class="n">02</span>
+          <h3>The right size, first time</h3>
+          <p>Shoppers see how a piece will sit on them — in plain language, never a judgment.</p>
+        </div>
+        <div class="prop">
+          <span class="n">03</span>
+          <h3>Drops into your store</h3>
+          <p>One small snippet on your product pages. No replatforming, nothing to maintain.</p>
+        </div>
+      </section>
+
+      <footer>A fitting tool for your store · demonstration</footer>
+    </main>
   </body>
 </html>

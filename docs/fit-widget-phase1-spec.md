@@ -136,6 +136,9 @@ model Product {
   garmentType     GarmentType
   fabric          String?                            // 'lawn'|'cotton'|'formal' (drives size-up hint)
 
+  modelHeight     String?                            // fit-model height, display only e.g. "5'5\""
+  modelSizeWorn   String?                            // size the fit model wears, e.g. "S"
+
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int?                               // index into fixed 12–16 palette
   formality       String?                            // 'casual'|'semi'|'formal'
@@ -150,6 +153,7 @@ Notes on the schema choices:
 - **`rows` is a relation, not a JSON column.** Keeps each size a real typed record you can query/validate, and Prisma fetches them in one nested read (no join pain in your code).
 - **CUID string ids** — friendlier than auto-int for ids that travel in URLs/embeds.
 - **Phase 2 columns are already here** (`colorSlot`, `formality`, `styleTag`) but unused in Phase 1. This is the cheap insurance we discussed — you avoid a migration when the pairing engine lands. Leaving them nullable means Phase 1 writes ignore them safely.
+- **Fit-model reference** (`modelHeight`, `modelSizeWorn`) are optional **display-only** strings surfaced next to the recommendation (e.g. "Our model is 5'5\" and wears S"). They are *not* inputs to the fit math — never feed them into the engine. Returned to the widget as `model_reference` (null when unset).
 - **Migrations:** `npx prisma migrate dev --name <change>` generates and applies each change. Early schema edits are seconds, and every change is versioned in `prisma/migrations/` — this is the "no migration hell" you wanted, with the DB still enforcing shape.
 
 Seed defaults to lower onboarding friction — offer these as a starting template the outlet then tweaks. Pakistani "Medium" commonly sits around **bust 36–38, waist 28–30, hip 38–40 inches**; S/M/L/XL are the standard labels; industry tolerance is **±1 inch**. Pre-fill a template with these and let them adjust.
@@ -233,15 +237,26 @@ Length never changes the recommended size; it's advisory.
   "confidence": "high",
   "alternative_size": "L",
   "zones": {
-    "bust":  { "class": "good", "note": "Sits comfortably at the bust." },
-    "waist": { "class": "good", "note": "Sits comfortably at the waist." },
-    "hip":   { "class": "good", "note": "Comfortable through the hip." }
+    "bust":  { "class": "good", "note": "Sits comfortably at the bust, with easy room to move." },
+    "waist": { "class": "good", "note": "Sits comfortably at the waist, with easy room to move." },
+    "hip":   { "class": "good", "note": "Sits comfortably at the hip, with easy room to move." }
   },
+  "sizes": [
+    { "size": "S",  "recommended": false, "summary": "A more fitted look",
+      "zones": { "bust": { "class": "snug", "note": "Sits close and fitted at the bust." }, "...": {} } },
+    { "size": "M",  "recommended": true,  "summary": "Your best fit",
+      "zones": { "bust": { "class": "good", "note": "Sits comfortably at the bust, with easy room to move." }, "...": {} } },
+    { "size": "L",  "recommended": false, "summary": "A roomier look",  "zones": { "...": {} } },
+    { "size": "XL", "recommended": false, "summary": "Quite loose",     "zones": { "...": {} } }
+  ],
   "length_note": "Falls just below the knee at your height.",
   "silhouette": { "bust": 37, "waist": 30, "hip": 40 }  // for the SVG
 }
 ```
 *(Sample shows all-`good` zones → `high` confidence, consistent with §4.4. A `relaxed`/`snug` zone would drop confidence to `medium`; any `too_tight` zone forces `low`.)*
+
+- **`sizes`** covers EVERY size in the chart, in order, so the widget can show the full ladder, not just the pick. Each entry has the size label, a `recommended` flag (the recommended size is flagged here too), its per-zone `{ class, note }`, and a garment-focused `summary` role label (`Your best fit` / `A more fitted look` / `A roomier look` / `May feel tight` / `Quite loose`). The existing single-size fields are unchanged.
+- **API envelope (§7):** the `/v1/fit/recommend` response also carries `size_guide` (the chart's garment measurements per size — `{ size, bust, waist, hip, kameezLength, trouserWaist, trouserLength }[]`) and `model_reference` (`{ height, size_worn }` from the product, or `null` when unset). These come from the product/template load, not the fit math.
 
 ---
 

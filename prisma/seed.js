@@ -19,6 +19,8 @@ const DEMO_PRODUCT = {
   name: "Demo Lawn Two-Piece",
   garmentType: "two_piece",
   fabric: null,
+  modelHeight: "5'6\"",
+  modelSizeWorn: "M",
 };
 
 /**

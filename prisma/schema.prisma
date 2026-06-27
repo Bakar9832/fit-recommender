@@ -70,6 +70,11 @@ model Product {
   garmentType     GarmentType
   fabric          String? // 'lawn'|'cotton'|'formal' (drives size-up hint)
 
+  // Optional "fit model" reference shown alongside the recommendation (display
+  // strings only — not used in the fit math). e.g. modelHeight "5'5\"", size "S".
+  modelHeight     String? // display string, e.g. "5'5\""
+  modelSizeWorn   String? // e.g. "S" | "M"
+
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int? // index into fixed 12–16 palette
   formality       String? // 'casual'|'semi'|'formal'

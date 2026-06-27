@@ -53,7 +53,24 @@ router.post("/v1/fit/recommend", async (req, res, next) => {
       rows: product.template.rows,
     });
 
-    return res.status(200).json(result);
+    // 5. Supporting context for the frontend (no extra query — already loaded):
+    //    the chart's garment measurements per size, and the product's optional
+    //    fit-model reference (null when the outlet hasn't set one).
+    const size_guide = product.template.rows.map((r) => ({
+      size: r.sizeLabel,
+      bust: r.bust,
+      waist: r.waist,
+      hip: r.hip,
+      kameezLength: r.kameezLength,
+      trouserWaist: r.trouserWaist,
+      trouserLength: r.trouserLength,
+    }));
+    const model_reference =
+      product.modelHeight || product.modelSizeWorn
+        ? { height: product.modelHeight ?? null, size_worn: product.modelSizeWorn ?? null }
+        : null;
+
+    return res.status(200).json({ ...result, size_guide, model_reference });
   } catch (err) {
     return next(err);
   }
