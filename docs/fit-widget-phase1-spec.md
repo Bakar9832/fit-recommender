@@ -235,6 +235,8 @@ Length never changes the recommended size; it's advisory.
 {
   "recommended_size": "M",
   "confidence": "high",
+  "fits_comfortably": true,
+  "fit_message": null,
   "alternative_size": "L",
   "zones": {
     "bust":  { "class": "good", "note": "Sits comfortably at the bust, with easy room to move." },
@@ -256,6 +258,8 @@ Length never changes the recommended size; it's advisory.
 *(Sample shows all-`good` zones → `high` confidence, consistent with §4.4. A `relaxed`/`snug` zone would drop confidence to `medium`; any `too_tight` zone forces `low`.)*
 
 - **`sizes`** covers EVERY size in the chart, in order, so the widget can show the full ladder, not just the pick. Each entry has the size label, a `recommended` flag (the recommended size is flagged here too), its per-zone `{ class, note }`, and a garment-focused `summary` role label (`Your best fit` / `A more fitted look` / `A roomier look` / `May feel tight` / `Quite loose`). The existing single-size fields are unchanged.
+- **`fits_comfortably` (boolean) + `fit_message` (string|null).** When even the best-scoring size still has a `too_tight` zone, the recommendation isn't actually comfortable — so `fits_comfortably: false`, `confidence: "low"`, and `fit_message` carries an honest headline, e.g. *"This piece may not fit comfortably — the largest size still runs tight at the bust."* The `recommended_size` is still returned (it's the closest available), but its `sizes[]` summary becomes **"Closest available — not a comfortable fit"** rather than "Your best fit". When a comfortable size exists, `fits_comfortably: true` and `fit_message: null`. (`fit_message` names the largest size only when the closest *is* the largest; otherwise "the closest size".)
+- **Conditional & degree-aware zone notes (§5).** A `too_tight`/`too_loose` note only suggests a larger/smaller size when one actually exists in the chart (the largest size never says "consider the larger size"). Tight/loose phrasing also reflects degree (a borderline size reads milder than an extreme one), so two very different sizes never produce the same sentence.
 - **API envelope (§7):** the `/v1/fit/recommend` response also carries `size_guide` (the chart's garment measurements per size — `{ size, bust, waist, hip, kameezLength, trouserWaist, trouserLength }[]`) and `model_reference` (`{ height, size_worn }` from the product, or `null` when unset). These come from the product/template load, not the fit math.
 
 ---
@@ -266,13 +270,15 @@ Length never changes the recommended size; it's advisory.
 
 | class | allowed phrasing (about the garment) | never say |
 |-------|--------------------------------------|-----------|
-| too_tight | "This may feel tight at the {zone} — consider the larger size." | anything about the body being big |
-| snug | "Fitted at the {zone}." | — |
-| good | "Sits comfortably at the {zone}." | — |
-| relaxed | "A little loose at the {zone}." | — |
-| too_loose | "Quite loose at the {zone} — the smaller size may sit better." | — |
+| too_tight (severe) | "Likely to feel far too tight at the {zone}[ — the larger size will sit more easily]." | anything about the body being big |
+| too_tight (mild) | "Runs a touch tight at the {zone}[ — the larger size will sit more easily]." | — |
+| snug | "Sits close and fitted at the {zone}." | — |
+| good | "Sits comfortably at the {zone}, with easy room to move." | — |
+| relaxed | "Falls a little loose at the {zone}, with room to spare." | — |
+| too_loose (mild) | "Runs loose at the {zone}[ — the smaller size will sit closer]." | — |
+| too_loose (severe) | "Sits very loose at the {zone}[ — the smaller size will sit closer]." | — |
 
-Keep the phrase keyed only on `{zone}` + `class`. No body adjectives anywhere in the codebase.
+The phrase is keyed on `{zone}` + `class` + **degree** (severe/mild) + **which neighbouring sizes exist**. The bracketed size suggestion is included **only when that larger/smaller size actually exists** in the chart. No body adjectives anywhere in the codebase; no numbers in any note.
 
 ---
 

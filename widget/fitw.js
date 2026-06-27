@@ -10,10 +10,14 @@
  *   <script src="fitw.js" async></script>
  *
  * Visual style: "Ink & Blush" (light) — navy #2E4A63 / blush #C99AA4 on a white
- * surface. Wording is garment-focused only (hard rule #1 / §5): never describes
- * the body, no percentages. Styles are scoped under the `.fitw` root so nothing
- * leaks into the host page. The file uses no import/export so it loads as a
- * classic browser script AND can be imported in Node (pure helpers on
+ * surface. Renders the enriched §4.6 response: recommended size + a size ladder
+ * (all sizes, recommended expanded, others tap-to-expand), an optional model
+ * reference line, and a collapsible size guide. The body figure is parked (not
+ * rendered this phase). Wording is garment-focused only (hard rule #1 / §5):
+ * never describes the body, no percentages, and all phrasing comes VERBATIM from
+ * the API (never reworded client-side). Styles are scoped under the `.fitw` root
+ * so nothing leaks into the host page. The file uses no import/export so it loads
+ * as a classic browser script AND can be imported in Node (pure helpers on
  * globalThis.__FITW__) for verification.
  */
 (function () {
@@ -23,10 +27,6 @@
   var ZONES = ["bust", "waist", "hip"];
   var MIN_IN = 20;
   var MAX_IN = 80;
-
-  // Ink & Blush figure colors (figure-reference "02 · Ink & blush").
-  var FIG_STROKE = "#2E4A63"; // navy linework
-  var FIG_SOFT = "#C99AA4"; // blush measure-lines
 
   // ---- pure helpers (rendering + wording; no DOM) ---------------------------
 
@@ -81,115 +81,122 @@
     return "Closest fit";
   }
 
-  function clamp(v, a, b) {
-    return Math.max(a, Math.min(b, v));
-  }
-
-  /* Neutral human figure — rounded sloping shoulders, proportions from
-   * measurements. Reproduced exactly from widget/figure-reference.html. */
-  function silhouette(m, stroke, soft) {
-    var cx = 60;
-    var bustHW = clamp((m.bust - 24) * 0.85, 13, 28);
-    var waistHW = clamp((m.waist - 22) * 0.8, 10, 24);
-    var hipHW = clamp((m.hip - 26) * 0.85, 14, 30);
-    var shoulderHW = bustHW + 3.5;
-    var ankleHW = hipHW * 0.32;
-    var neckHW = 3.6;
-    var hf = clamp((m.height - 64) * 1.3, -8, 12);
-
-    var headCy = 11, headR = 8.5;
-    var neckBaseY = 24, shoulderY = 31, bustY = 50;
-    var waistY = 76 + hf * 0.4, hipY = 102 + hf * 0.8, hemY = 168 + hf * 1.6;
-
-    function L(x, y) {
-      return x.toFixed(1) + " " + y.toFixed(1);
-    }
-
-    var body =
-      "M " + L(cx - neckHW, neckBaseY) +
-      " C " + L(cx - neckHW - 3, neckBaseY + 2) + " " + L(cx - shoulderHW + 5, shoulderY - 3) + " " + L(cx - shoulderHW, shoulderY) +
-      " C " + L(cx - shoulderHW - 1, shoulderY + 8) + " " + L(cx - bustHW - 1, bustY - 10) + " " + L(cx - bustHW, bustY) +
-      " C " + L(cx - bustHW, bustY + 9) + " " + L(cx - waistHW, waistY - 11) + " " + L(cx - waistHW, waistY) +
-      " C " + L(cx - waistHW, waistY + 11) + " " + L(cx - hipHW, hipY - 13) + " " + L(cx - hipHW, hipY) +
-      " C " + L(cx - hipHW, hipY + 10) + " " + L(cx - ankleHW - 7, hemY - 32) + " " + L(cx - ankleHW - 6, hemY) +
-      " L " + L(cx - 1.6, hemY) + " L " + L(cx - 1.6, hipY + 12) + " L " + L(cx + 1.6, hipY + 12) + " L " + L(cx + 1.6, hemY) +
-      " L " + L(cx + ankleHW + 6, hemY) +
-      " C " + L(cx + ankleHW + 7, hemY - 32) + " " + L(cx + hipHW, hipY + 10) + " " + L(cx + hipHW, hipY) +
-      " C " + L(cx + hipHW, hipY - 13) + " " + L(cx + waistHW, waistY + 11) + " " + L(cx + waistHW, waistY) +
-      " C " + L(cx + waistHW, waistY - 11) + " " + L(cx + bustHW, bustY + 9) + " " + L(cx + bustHW, bustY) +
-      " C " + L(cx + bustHW + 1, bustY - 10) + " " + L(cx + shoulderHW + 1, shoulderY + 8) + " " + L(cx + shoulderHW, shoulderY) +
-      " C " + L(cx + shoulderHW - 5, shoulderY - 3) + " " + L(cx + neckHW + 3, neckBaseY + 2) + " " + L(cx + neckHW, neckBaseY) +
-      " Z";
-
-    var armL = "M " + L(cx - shoulderHW + 0.5, shoulderY + 1) + " C " + L(cx - shoulderHW - 6, bustY) + " " + L(cx - waistHW - 8, waistY) + " " + L(cx - waistHW - 5, hipY - 10);
-    var armR = "M " + L(cx + shoulderHW - 0.5, shoulderY + 1) + " C " + L(cx + shoulderHW + 6, bustY) + " " + L(cx + waistHW + 8, waistY) + " " + L(cx + waistHW + 5, hipY - 10);
-
-    function ml(y, hw) {
-      return '<line x1="' + (cx - hw) + '" y1="' + y + '" x2="' + (cx + hw) + '" y2="' + y + '" stroke="' + soft + '" stroke-width="0.8" stroke-dasharray="1.5 3" opacity="0.75"/>';
-    }
-
-    return (
-      '<svg viewBox="0 0 120 ' + (hemY + 12).toFixed(0) + '" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-      '<circle cx="' + cx + '" cy="' + headCy + '" r="' + headR + '" stroke="' + stroke + '" stroke-width="1.6"/>' +
-      '<path d="M ' + L(cx - neckHW, neckBaseY) + " L " + L(cx - neckHW + 0.4, headCy + headR - 1.5) + '" stroke="' + stroke + '" stroke-width="1.4"/>' +
-      '<path d="M ' + L(cx + neckHW, neckBaseY) + " L " + L(cx + neckHW - 0.4, headCy + headR - 1.5) + '" stroke="' + stroke + '" stroke-width="1.4"/>' +
-      '<path d="' + body + '" stroke="' + stroke + '" stroke-width="1.7" stroke-linejoin="round"/>' +
-      '<path d="' + armL + '" stroke="' + stroke + '" stroke-width="1.4"/>' +
-      '<path d="' + armR + '" stroke="' + stroke + '" stroke-width="1.4"/>' +
-      ml(bustY, bustHW) + ml(waistY, waistHW) + ml(hipY, hipHW) +
-      "</svg>"
-    );
-  }
-
-  // Build the abstract figure from a §4.6 silhouette block + the entered height.
-  function figureFor(silhouetteBlock, height) {
-    if (!silhouetteBlock) return "";
-    var b = silhouetteBlock.bust, w = silhouetteBlock.waist, h = silhouetteBlock.hip;
-    if (typeof b !== "number" || typeof w !== "number" || typeof h !== "number") return "";
-    var m = { bust: b, waist: w, hip: h, height: typeof height === "number" ? height : 64 };
-    return silhouette(m, FIG_STROKE, FIG_SOFT);
-  }
-
-  // Assemble the result panel from a §4.6 response object. Returns HTML string.
-  // opts.height (optional) drives the figure's vertical proportions.
-  function renderResultHTML(data, opts) {
-    opts = opts || {};
-    var rec = data.recommended_size;
-    var alt = data.alternative_size;
-    var html = "";
-
-    html +=
-      '<div class="fitw-size-head"><span class="fitw-size-big">' +
-      esc(rec) +
-      '</span><span class="fitw-size-cap">Recommended<br>size</span></div>';
-    html += '<span class="fitw-chip">' + esc(chipLabel(data.confidence)) + "</span>";
-
-    html += '<div class="fitw-figure">' + figureFor(data.silhouette, opts.height) + "</div>";
-
-    // Per-zone garment notes (already garment-focused from the API).
-    html += '<ul class="fitw-zones">';
+  // Per-zone notes list for one size entry (notes come verbatim from the API).
+  function zonesList(zones) {
+    var html = '<ul class="fitw-zones">';
     ZONES.forEach(function (z) {
-      var zone = data.zones && data.zones[z];
+      var zone = zones && zones[z];
       if (!zone) return;
       html +=
         '<li><span class="fitw-dot fitw-' + esc(zone.class) + '"></span>' +
         '<span class="fitw-zname">' + esc(z) + "</span>" +
         "<span>" + esc(zone.note) + "</span></li>";
     });
-    html += "</ul>";
+    return html + "</ul>";
+  }
 
-    if (data.length_note) {
-      html += '<p class="fitw-length">' + esc(data.length_note) + "</p>";
-    }
+  // The size ladder: every size, label + summary. Recommended is highlighted and
+  // expanded (its zone notes shown); others collapse behind a tap.
+  function ladder(sizes, idPrefix) {
+    if (!sizes || !sizes.length) return "";
+    var rows = sizes
+      .map(function (s) {
+        var open = !!s.recommended;
+        var bodyId = idPrefix + "-z-" + String(s.size);
+        return (
+          '<div class="fitw-srow' + (open ? " fitw-srow--rec" : "") + '">' +
+          '<button type="button" class="fitw-srow-head" aria-expanded="' +
+          (open ? "true" : "false") + '" aria-controls="' + esc(bodyId) + '">' +
+          '<span class="fitw-srow-size">' + esc(s.size) + "</span>" +
+          '<span class="fitw-srow-summary">' + esc(s.summary) + "</span>" +
+          '<span class="fitw-srow-caret" aria-hidden="true"></span>' +
+          "</button>" +
+          '<div class="fitw-srow-body" id="' + esc(bodyId) + '"' + (open ? "" : " hidden") + ">" +
+          zonesList(s.zones) +
+          "</div></div>"
+        );
+      })
+      .join("");
+    return '<div class="fitw-ladder" role="group" aria-label="All sizes">' + rows + "</div>";
+  }
 
-    // Between-sizes: medium confidence is the genuine "between" signal → present
-    // both as a real, equal choice. Otherwise, if an alternative exists, offer
-    // it as a lighter neutral aside.
+  // Optional model reference line (display-only; omitted entirely when null).
+  function modelLine(mr) {
+    if (!mr) return "";
+    var h = mr.height, s = mr.size_worn;
+    var text;
+    if (h && s) text = "Model is " + esc(h) + ", wearing size " + esc(s) + ".";
+    else if (h) text = "Model is " + esc(h) + ".";
+    else if (s) text = "Model wears size " + esc(s) + ".";
+    else return "";
+    return '<p class="fitw-model">' + text + "</p>";
+  }
+
+  // Collapsible size-guide table (garment measurements per size, inches).
+  function sizeGuide(guide, idPrefix) {
+    if (!guide || !guide.length) return "";
+    var bodyId = idPrefix + "-guide";
+    var cell = function (v) {
+      return typeof v === "number" ? esc(v) : "—";
+    };
+    var rows = guide
+      .map(function (g) {
+        return (
+          "<tr><td>" + esc(g.size) + "</td><td>" + cell(g.bust) + "</td><td>" +
+          cell(g.waist) + "</td><td>" + cell(g.hip) + "</td><td>" +
+          cell(g.kameezLength) + "</td></tr>"
+        );
+      })
+      .join("");
+    return (
+      '<div class="fitw-guide">' +
+      '<button type="button" class="fitw-guide-toggle" aria-expanded="false" aria-controls="' +
+      esc(bodyId) + '">Size guide</button>' +
+      '<div class="fitw-guide-body" id="' + esc(bodyId) + '" hidden>' +
+      '<table class="fitw-guide-table"><thead><tr><th>Size</th><th>Bust</th>' +
+      "<th>Waist</th><th>Hip</th><th>Length</th></tr></thead><tbody>" + rows +
+      "</tbody></table>" +
+      '<p class="fitw-guide-note">Garment measurements, in inches.</p>' +
+      "</div></div>"
+    );
+  }
+
+  // Assemble the result panel from a §4.6 response object. Returns HTML string.
+  // opts.idPrefix scopes element ids so multiple widgets don't collide.
+  function renderResultHTML(data, opts) {
+    opts = opts || {};
+    var idPrefix = opts.idPrefix || "fitw";
+    var rec = data.recommended_size;
+    var alt = data.alternative_size;
+    var html = "";
+
+    // 1. Prominent recommended size + confidence chip.
+    html +=
+      '<div class="fitw-size-head"><span class="fitw-size-big">' + esc(rec) +
+      '</span><span class="fitw-size-cap">Recommended<br>size</span></div>';
+    html += '<span class="fitw-chip">' + esc(chipLabel(data.confidence)) + "</span>";
+
+    // 2. Between-sizes nudge (garment-only). Medium = genuine "between" → equal
+    //    choice; otherwise a lighter aside when an alternative exists.
     if (data.confidence === "medium" && alt) {
       html += '<div class="fitw-between">' + betweenSizesParagraph(rec, alt) + "</div>";
     } else if (alt) {
       html += '<p class="fitw-also">' + alsoConsiderLine(rec, alt) + "</p>";
     }
+
+    // 3. Advisory length note (only when present).
+    if (data.length_note) {
+      html += '<p class="fitw-length">' + esc(data.length_note) + "</p>";
+    }
+
+    // 4. Size ladder (all sizes; recommended expanded).
+    html += ladder(data.sizes, idPrefix);
+
+    // 5. Model reference (omitted when null).
+    html += modelLine(data.model_reference);
+
+    // 6. Size guide (collapsed).
+    html += sizeGuide(data.size_guide, idPrefix);
 
     return html;
   }
@@ -199,7 +206,6 @@
     globalThis.__FITW__ = {
       betweenSizesParagraph: betweenSizesParagraph,
       alsoConsiderLine: alsoConsiderLine,
-      silhouette: silhouette,
       renderResultHTML: renderResultHTML,
     };
   }
@@ -207,6 +213,8 @@
   // ---- browser-only: fonts, styles, mounting, form, fetch -------------------
 
   if (typeof document === "undefined") return;
+
+  var seq = 0; // per-instance id scope
 
   var FONTS_HREF =
     "https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap";
@@ -244,19 +252,44 @@
     ".fitw-size-head{display:flex;align-items:flex-end;gap:14px;margin-bottom:2px}",
     ".fitw-size-big{font-family:var(--fitw-mono);font-weight:600;font-size:60px;line-height:.9;color:var(--fitw-navy)}",
     ".fitw-size-cap{font-family:var(--fitw-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fitw-muted);padding-bottom:8px}",
-    ".fitw-chip{display:inline-block;margin:10px 0 16px;font-size:12.5px;font-weight:600;color:#fff;background:var(--fitw-navy);padding:5px 12px;border-radius:999px}",
-    ".fitw-figure{display:flex;justify-content:center;margin:4px 0 16px}",
-    ".fitw-figure svg{width:96px;height:auto}",
-    ".fitw-zones{list-style:none;margin:0 0 12px;padding:0;border-top:1px solid var(--fitw-line)}",
-    ".fitw-zones li{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--fitw-line);font-size:14px;color:var(--fitw-ink)}",
-    ".fitw-dot{width:8px;height:8px;border-radius:50%;flex:none}",
+    ".fitw-chip{display:inline-block;margin:10px 0 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--fitw-navy);padding:5px 12px;border-radius:999px}",
+    ".fitw-between{background:rgba(201,154,164,.12);border:1px solid var(--fitw-line);border-radius:12px;padding:13px 15px;font-size:13.5px;color:var(--fitw-ink);margin-bottom:6px}",
+    ".fitw-also{font-size:13px;color:var(--fitw-muted);margin:0 0 6px}",
+    ".fitw-length{font-size:13px;color:var(--fitw-muted);margin:6px 0 0}",
+    // ladder
+    ".fitw-ladder{margin:14px 0 12px;border-top:1px solid var(--fitw-line)}",
+    ".fitw-srow{border-bottom:1px solid var(--fitw-line)}",
+    ".fitw-srow--rec{background:rgba(46,74,99,.05)}",
+    ".fitw-srow-head{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;padding:11px 6px;cursor:pointer;text-align:left;font-family:var(--fitw-body);color:var(--fitw-ink)}",
+    ".fitw-srow-head:focus-visible{outline:3px solid var(--fitw-navy);outline-offset:-3px;border-radius:8px}",
+    ".fitw-srow-size{font-family:var(--fitw-mono);font-weight:600;font-size:15px;color:var(--fitw-navy);min-width:34px}",
+    ".fitw-srow-summary{flex:1;font-size:13.5px;color:var(--fitw-ink)}",
+    ".fitw-srow--rec .fitw-srow-summary{font-weight:600;color:var(--fitw-navy)}",
+    ".fitw-srow-caret{flex:none;width:0;height:0;border-left:5px solid var(--fitw-muted);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}",
+    '.fitw-srow-head[aria-expanded="true"] .fitw-srow-caret{transform:rotate(90deg)}',
+    ".fitw-srow-body{padding:0 6px 12px}",
+    ".fitw-zones{list-style:none;margin:0;padding:0}",
+    ".fitw-zones li{display:flex;align-items:flex-start;gap:10px;padding:6px 0;font-size:13px;color:var(--fitw-ink)}",
+    ".fitw-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:5px}",
     ".fitw-dot.fitw-good{background:var(--fitw-navy)}",
     ".fitw-dot.fitw-snug,.fitw-dot.fitw-relaxed{background:var(--fitw-blush)}",
     ".fitw-dot.fitw-too_tight,.fitw-dot.fitw-too_loose{background:var(--fitw-clay)}",
-    ".fitw-zname{font-family:var(--fitw-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--fitw-muted);width:50px;flex:none}",
-    ".fitw-length{font-size:13px;color:var(--fitw-muted);margin:0 0 12px}",
-    ".fitw-between{background:rgba(201,154,164,.12);border:1px solid var(--fitw-line);border-radius:12px;padding:13px 15px;font-size:13.5px;color:var(--fitw-ink)}",
-    ".fitw-also{font-size:13px;color:var(--fitw-muted);margin-top:8px}",
+    ".fitw-zname{font-family:var(--fitw-mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--fitw-muted);width:46px;flex:none;margin-top:1px}",
+    // model line
+    ".fitw-model{font-size:12.5px;color:var(--fitw-muted);margin:0 0 14px}",
+    // size guide
+    ".fitw-guide{border-top:1px solid var(--fitw-line);padding-top:6px}",
+    ".fitw-guide-toggle{display:flex;align-items:center;gap:9px;width:100%;background:none;border:0;padding:8px 6px;cursor:pointer;font-family:var(--fitw-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fitw-muted)}",
+    ".fitw-guide-toggle:focus-visible{outline:3px solid var(--fitw-navy);outline-offset:-3px;border-radius:8px}",
+    '.fitw-guide-toggle::before{content:"";flex:none;width:0;height:0;border-left:5px solid var(--fitw-muted);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}',
+    '.fitw-guide-toggle[aria-expanded="true"]::before{transform:rotate(90deg)}',
+    ".fitw-guide-body{padding:4px 0 2px}",
+    ".fitw-guide-table{width:100%;border-collapse:collapse;font-family:var(--fitw-mono);font-size:12.5px}",
+    ".fitw-guide-table th{text-align:right;font-weight:500;color:var(--fitw-muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:4px 6px;border-bottom:1px solid var(--fitw-line)}",
+    ".fitw-guide-table td{text-align:right;padding:5px 6px;border-bottom:1px solid var(--fitw-line);color:var(--fitw-ink)}",
+    ".fitw-guide-table th:first-child,.fitw-guide-table td:first-child{text-align:left}",
+    ".fitw-guide-table td:first-child{color:var(--fitw-navy);font-weight:600}",
+    ".fitw-guide-note{font-size:11px;color:var(--fitw-muted);margin:8px 0 0}",
     "@keyframes fitw-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}",
     "@media (max-width:720px){.fitw-card{grid-template-columns:1fr}.fitw-panel--form{border-right:0;border-bottom:1px solid var(--fitw-line)}}",
     "@media (prefers-reduced-motion:reduce){.fitw *{animation:none!important;transition:none!important}}",
@@ -297,6 +330,7 @@
     var outletKey = el.getAttribute("data-outlet");
     var sku = el.getAttribute("data-product");
     var apiBase = el.getAttribute("data-api") || window.location.origin;
+    var idPrefix = "fitw" + ++seq;
 
     el.className = (el.className ? el.className + " " : "") + "fitw";
     el.innerHTML =
@@ -320,6 +354,17 @@
     var errBox = el.querySelector(".fitw-err");
     var emptyBox = el.querySelector(".fitw-empty");
     var resultBox = el.querySelector(".fitw-result");
+
+    // Delegated expand/collapse for the ladder rows and the size-guide toggle.
+    // Buttons fire click on Enter/Space, so this is keyboard-accessible.
+    resultBox.addEventListener("click", function (e) {
+      var head = e.target.closest(".fitw-srow-head, .fitw-guide-toggle");
+      if (!head || !resultBox.contains(head)) return;
+      var expanded = head.getAttribute("aria-expanded") === "true";
+      head.setAttribute("aria-expanded", expanded ? "false" : "true");
+      var body = document.getElementById(head.getAttribute("aria-controls"));
+      if (body) body.hidden = expanded;
+    });
 
     form.addEventListener("submit", function (e) {
       e.preventDefault();
@@ -363,7 +408,7 @@
             return;
           }
           emptyBox.style.display = "none";
-          resultBox.innerHTML = renderResultHTML(r.body, { height: m.height });
+          resultBox.innerHTML = renderResultHTML(r.body, { idPrefix: idPrefix });
           resultBox.classList.remove("fitw-show");
           void resultBox.offsetWidth; // restart the entrance animation
           resultBox.classList.add("fitw-show");

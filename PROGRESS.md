@@ -4,11 +4,10 @@ Read this at the start of every session. Update the "Session log" at the end of 
 Work the **Current task** only. Don't start the next item until the current one runs and is verified.
 
 ## Current task
-> Widget render of the enriched recommendation (FRONTEND): show the multi-size ladder (`sizes[]` with
-> per-size summary + per-zone notes, recommended flagged), the `model_reference` ("Our model is 5'6\"
-> and wears M", omit when null), and the `size_guide` chart. Visual layer only — the backend contract
-> is done + verified. Keep Ink & Blush, garment-only wording, dual-mode, scoped styles.
-> (Then: deployment. Field-work §9 validation pass still open in parallel.)
+> Deployment: hosted Postgres + API + static frontend. Stand up the API against hosted Postgres
+> (`prisma migrate deploy` + seed), host the static widget/demo, lock CORS to the real outlet
+> origin(s) instead of `*`, config via env (DATABASE_URL etc.). Backend + enriched widget are built +
+> verified locally. (Field-work §9 validation pass still open in parallel — not a deploy blocker.)
 
 ## Build checklist (Phase 1, in order)
 - [x] Project scaffold (Express app, npm scripts, env config, prisma client in `lib/`)
@@ -25,7 +24,10 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Embeddable widget (`widget/fitw.js`, vanilla JS) + demo page (`widget/demo.html`) + CORS on API
 - [x] Widget restyle — "Ink & Blush" palette + human-figure silhouette (visual-only)
 - [x] Recommendation enrichment (backend): multi-size output + richer wording + model-ref + size-guide
-- [ ] Widget render of enrichment: multi-size ladder + model_reference + size_guide
+- [x] Widget render of enrichment: multi-size ladder + model_reference + size_guide (figure parked)
+- [x] Backend fix: conditional/degree fit wording + no-genuine-fit (`fits_comfortably`/`fit_message`)
+- [ ] Widget render: surface `fits_comfortably` honestly (when false, swap the "Closest fit" chip
+      wording to read "Not a comfortable fit" / show `fit_message`; recommended is the closest, not "best")
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -51,6 +53,33 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-27 — BACKEND fix to fit wording + no-genuine-fit case (engine + wording + §4/§5 spec). (1)
+  Directional "consider the larger/smaller size" suggestions now gated on whether that neighbour size
+  actually EXISTS — the largest size never says "larger size", the smallest never says "smaller size"
+  (engine passes hasSmaller/hasLarger from each row's position into `noteFor`). (2) Tight/loose phrasing
+  now degree-aware (`severity` from ease magnitude, threshold SEVERE_MARGIN=4in): severe "Likely to feel
+  far too tight…" vs mild "Runs a touch tight…" (and "Sits very loose…" vs "Runs loose…"), so smallest vs
+  borderline never read the same. (3) NO-GENUINE-FIT: new top-level `fits_comfortably` (bool) + `fit_message`
+  (string|null); when the closest size still has a too_tight zone → false, confidence stays low, honest
+  message "This piece may not fit comfortably — the largest size still runs tight at the {zone}.", and the
+  recommended size's `sizes[]` summary becomes "Closest available — not a comfortable fit" (role `closest`)
+  instead of "Your best fit". Verified with 42/30/36 → XL, fits_comfortably false, XL bust note has NO
+  larger-size suggestion. Tests 55→63 (wording exact strings updated for new phrasing; no-fit + degree +
+  neighbour-gating + smallest≠largest tight strings; banned-word/number guard extended over all variants +
+  noFitMessage). All green. Next render pass should surface `fits_comfortably` honestly (see checklist).
+  Gotcha: enriching wording changed exact note strings → updated the old assertions in wording/fitEngine tests.
+- 2026-06-27 — Widget render of the enriched recommendation (VISUAL only, `widget/fitw.js`). Body figure
+  REMOVED/parked (dropped silhouette/figureFor/clamp + figure CSS + the `silhouette` export). Result panel
+  now: prominent recommended size + confidence chip → between/aside nudge (kept, garment-only) → length
+  note → **size ladder** of ALL `sizes[]` (label + `summary`; recommended row highlighted `fitw-srow--rec`
+  + expanded showing per-zone notes; others collapsed `<button aria-expanded>` bodies, tap to expand —
+  delegated click handler, keyboard-accessible, caret rotates, reduced-motion respected) → **model line**
+  ("Model is {height}, wearing size {size_worn}." graceful variants; omitted when null) → collapsible
+  **size guide** table (size+bust/waist/hip/length, mono numbers, inches, "—" for null). All API wording
+  rendered verbatim. Per-instance id prefix so multiple widgets don't collide. Ink & Blush + scoped styles
+  + dual-mode `globalThis.__FITW__` kept; fit logic / API call / response contract / CORS untouched. 55
+  tests + Node render-check pass (clean pick M + between-sizes L both render ladder/model/guide correctly).
+  Next: deployment.
 - 2026-06-27 — Enriched the recommendation (BACKEND only). Migration `product_model_reference` added
   Product.modelHeight (String?) + modelSizeWorn (String?) (display-only, NOT engine inputs); seed demo
   product now "5'6\"" / "M". `recommendFit()` now also returns `sizes[]` covering EVERY chart size

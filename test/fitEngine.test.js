@@ -64,15 +64,69 @@ describe("recommendFit (§4 size selection)", () => {
 
   it("returns low confidence when even the best size has a too_tight zone", () => {
     // body exceeds the largest chart everywhere → XL is the least-bad but still
-    // too tight. Confidence must be low and the bust note must offer sizing up.
+    // too tight. Confidence low, not comfortable, and — XL being the largest —
+    // the note must NOT suggest a larger size.
     const out = recommendFit({ bust: 42, waist: 34, hip: 44 }, regular());
 
     expect(out.recommended_size).toBe("XL");
     expect(out.confidence).toBe("low");
+    expect(out.fits_comfortably).toBe(false);
     expect(out.zones.bust.class).toBe("too_tight");
-    expect(out.zones.bust.note).toBe(
-      "Likely to feel tight at the bust — the larger size will sit more easily."
+    expect(out.zones.bust.note).toBe("Runs a touch tight at the bust.");
+    expect(out.zones.bust.note).not.toMatch(/larger size/);
+  });
+});
+
+describe("recommendFit (no genuine fit + conditional/degree wording)", () => {
+  it("flags fits_comfortably false with an honest message when nothing fits", () => {
+    // bust 42 exceeds even XL (41) → the closest size still runs tight.
+    const out = recommendFit({ bust: 42, waist: 30, hip: 36 }, regular());
+
+    expect(out.recommended_size).toBe("XL");
+    expect(out.confidence).toBe("low");
+    expect(out.fits_comfortably).toBe(false);
+    expect(out.fit_message).toBe(
+      "This piece may not fit comfortably — the largest size still runs tight at the bust."
     );
+
+    const xl = out.sizes.find((s) => s.size === "XL");
+    expect(xl.recommended).toBe(true);
+    // Closest available — framed honestly, NOT "your best fit".
+    expect(xl.summary).toBe("Closest available — not a comfortable fit");
+    // Largest size → no "larger size" suggestion.
+    expect(xl.zones.bust.note).not.toMatch(/larger size/);
+  });
+
+  it("gives the smallest and largest tight zones DIFFERENT strings (degree + suggestion)", () => {
+    const out = recommendFit({ bust: 42, waist: 30, hip: 36 }, regular());
+    const s = out.sizes.find((x) => x.size === "S");
+    const xl = out.sizes.find((x) => x.size === "XL");
+
+    expect(s.zones.bust.class).toBe("too_tight");
+    expect(xl.zones.bust.class).toBe("too_tight");
+    expect(s.zones.bust.note).not.toBe(xl.zones.bust.note);
+
+    // smallest: extreme read + suggests the larger size (one exists)
+    expect(s.zones.bust.note).toBe(
+      "Likely to feel far too tight at the bust — the larger size will sit more easily."
+    );
+    // largest: milder read + no suggestion (no larger size)
+    expect(xl.zones.bust.note).toBe("Runs a touch tight at the bust.");
+  });
+
+  it("is comfortable (true / null message) for a clean pick", () => {
+    const out = recommendFit({ bust: 33, waist: 25, hip: 35 }, regular());
+    expect(out.fits_comfortably).toBe(true);
+    expect(out.fit_message).toBeNull();
+  });
+
+  it("does not suggest a smaller size on the smallest size when too loose", () => {
+    // body far below the chart → S is the least-loose, but it's the smallest,
+    // so its too_loose note must not point to a (non-existent) smaller size.
+    const out = recommendFit({ bust: 22, waist: 22, hip: 24 }, regular());
+    const s = out.sizes.find((x) => x.size === "S");
+    expect(s.zones.bust.class).toBe("too_loose");
+    expect(s.zones.bust.note).not.toMatch(/smaller size/);
   });
 });
 
