@@ -96,15 +96,18 @@
   }
 
   // The size ladder: every size, label + summary. Recommended is highlighted and
-  // expanded (its zone notes shown); others collapse behind a tap.
-  function ladder(sizes, idPrefix) {
+  // expanded (its zone notes shown); others collapse behind a tap. When the
+  // recommendation isn't a comfortable fit, the recommended row uses a cautious
+  // highlight instead of the confident "best fit" one.
+  function ladder(sizes, idPrefix, notComfortable) {
     if (!sizes || !sizes.length) return "";
     var rows = sizes
       .map(function (s) {
         var open = !!s.recommended;
+        var recClass = open ? (notComfortable ? " fitw-srow--caution" : " fitw-srow--rec") : "";
         var bodyId = idPrefix + "-z-" + String(s.size);
         return (
-          '<div class="fitw-srow' + (open ? " fitw-srow--rec" : "") + '">' +
+          '<div class="fitw-srow' + recClass + '">' +
           '<button type="button" class="fitw-srow-head" aria-expanded="' +
           (open ? "true" : "false") + '" aria-controls="' + esc(bodyId) + '">' +
           '<span class="fitw-srow-size">' + esc(s.size) + "</span>" +
@@ -168,34 +171,49 @@
     var idPrefix = opts.idPrefix || "fitw";
     var rec = data.recommended_size;
     var alt = data.alternative_size;
+    var notComfortable = data.fits_comfortably === false;
     var html = "";
 
-    // 1. Prominent recommended size + confidence chip.
+    // 1. Prominent recommended size + chip. When nothing fits comfortably, the
+    //    chip reads "Closest available" in a cautious (not error) style so it
+    //    never looks like a confident recommendation.
     html +=
       '<div class="fitw-size-head"><span class="fitw-size-big">' + esc(rec) +
       '</span><span class="fitw-size-cap">Recommended<br>size</span></div>';
-    html += '<span class="fitw-chip">' + esc(chipLabel(data.confidence)) + "</span>";
-
-    // 2. Between-sizes nudge (garment-only). Medium = genuine "between" → equal
-    //    choice; otherwise a lighter aside when an alternative exists.
-    if (data.confidence === "medium" && alt) {
-      html += '<div class="fitw-between">' + betweenSizesParagraph(rec, alt) + "</div>";
-    } else if (alt) {
-      html += '<p class="fitw-also">' + alsoConsiderLine(rec, alt) + "</p>";
+    if (notComfortable) {
+      html += '<span class="fitw-chip fitw-chip--caution">Closest available</span>';
+    } else {
+      html += '<span class="fitw-chip">' + esc(chipLabel(data.confidence)) + "</span>";
     }
 
-    // 3. Advisory length note (only when present).
+    // 2. No-fit banner — fit_message verbatim from the API, above the ladder.
+    if (notComfortable && data.fit_message) {
+      html += '<div class="fitw-banner" role="status">' + esc(data.fit_message) + "</div>";
+    }
+
+    // 3. Between-sizes nudge (garment-only) — only when the pick is a real,
+    //    comfortable fit. Suppressed in the no-fit case so it can't read as a
+    //    confident "prefer more room?" suggestion under the caution banner.
+    if (!notComfortable) {
+      if (data.confidence === "medium" && alt) {
+        html += '<div class="fitw-between">' + betweenSizesParagraph(rec, alt) + "</div>";
+      } else if (alt) {
+        html += '<p class="fitw-also">' + alsoConsiderLine(rec, alt) + "</p>";
+      }
+    }
+
+    // 4. Advisory length note (only when present).
     if (data.length_note) {
       html += '<p class="fitw-length">' + esc(data.length_note) + "</p>";
     }
 
-    // 4. Size ladder (all sizes; recommended expanded).
-    html += ladder(data.sizes, idPrefix);
+    // 5. Size ladder (all sizes; recommended expanded; cautious if no-fit).
+    html += ladder(data.sizes, idPrefix, notComfortable);
 
-    // 5. Model reference (omitted when null).
+    // 6. Model reference (omitted when null).
     html += modelLine(data.model_reference);
 
-    // 6. Size guide (collapsed).
+    // 7. Size guide (collapsed).
     html += sizeGuide(data.size_guide, idPrefix);
 
     return html;
@@ -253,6 +271,10 @@
     ".fitw-size-big{font-family:var(--fitw-mono);font-weight:600;font-size:60px;line-height:.9;color:var(--fitw-navy)}",
     ".fitw-size-cap{font-family:var(--fitw-mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fitw-muted);padding-bottom:8px}",
     ".fitw-chip{display:inline-block;margin:10px 0 14px;font-size:12.5px;font-weight:600;color:#fff;background:var(--fitw-navy);padding:5px 12px;border-radius:999px}",
+    // cautious chip for the no-comfortable-fit case (soft blush, NOT error-red)
+    ".fitw-chip.fitw-chip--caution{background:var(--fitw-blush);color:var(--fitw-ink)}",
+    // honest, non-alarming banner above the ladder when nothing fits comfortably
+    ".fitw-banner{background:rgba(201,154,164,.16);border:1px solid var(--fitw-blush);border-left-width:3px;border-radius:10px;padding:11px 14px;font-size:13.5px;color:var(--fitw-ink);margin:0 0 14px}",
     ".fitw-between{background:rgba(201,154,164,.12);border:1px solid var(--fitw-line);border-radius:12px;padding:13px 15px;font-size:13.5px;color:var(--fitw-ink);margin-bottom:6px}",
     ".fitw-also{font-size:13px;color:var(--fitw-muted);margin:0 0 6px}",
     ".fitw-length{font-size:13px;color:var(--fitw-muted);margin:6px 0 0}",
@@ -260,11 +282,14 @@
     ".fitw-ladder{margin:14px 0 12px;border-top:1px solid var(--fitw-line)}",
     ".fitw-srow{border-bottom:1px solid var(--fitw-line)}",
     ".fitw-srow--rec{background:rgba(46,74,99,.05)}",
+    // cautious highlight for the recommended row when it isn't a comfortable fit
+    ".fitw-srow--caution{background:rgba(201,154,164,.14);box-shadow:inset 3px 0 0 var(--fitw-blush)}",
     ".fitw-srow-head{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;padding:11px 6px;cursor:pointer;text-align:left;font-family:var(--fitw-body);color:var(--fitw-ink)}",
     ".fitw-srow-head:focus-visible{outline:3px solid var(--fitw-navy);outline-offset:-3px;border-radius:8px}",
     ".fitw-srow-size{font-family:var(--fitw-mono);font-weight:600;font-size:15px;color:var(--fitw-navy);min-width:34px}",
     ".fitw-srow-summary{flex:1;font-size:13.5px;color:var(--fitw-ink)}",
     ".fitw-srow--rec .fitw-srow-summary{font-weight:600;color:var(--fitw-navy)}",
+    ".fitw-srow--caution .fitw-srow-summary{font-weight:600;color:var(--fitw-ink)}",
     ".fitw-srow-caret{flex:none;width:0;height:0;border-left:5px solid var(--fitw-muted);border-top:4px solid transparent;border-bottom:4px solid transparent;transition:transform .15s}",
     '.fitw-srow-head[aria-expanded="true"] .fitw-srow-caret{transform:rotate(90deg)}',
     ".fitw-srow-body{padding:0 6px 12px}",

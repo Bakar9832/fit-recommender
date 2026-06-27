@@ -26,8 +26,8 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Recommendation enrichment (backend): multi-size output + richer wording + model-ref + size-guide
 - [x] Widget render of enrichment: multi-size ladder + model_reference + size_guide (figure parked)
 - [x] Backend fix: conditional/degree fit wording + no-genuine-fit (`fits_comfortably`/`fit_message`)
-- [ ] Widget render: surface `fits_comfortably` honestly (when false, swap the "Closest fit" chip
-      wording to read "Not a comfortable fit" / show `fit_message`; recommended is the closest, not "best")
+- [x] Widget render: surface `fits_comfortably` honestly (caution "Closest available" chip + `fit_message`
+      banner + cautious recommended-row highlight when false; unchanged when true) — visual-only
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -53,6 +53,17 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-28 — Widget render of the no-fit case (VISUAL only, `widget/fitw.js`). When
+  `fits_comfortably === false`: (1) a non-alarming **banner** shows `fit_message` verbatim above the
+  ladder (`.fitw-banner`, soft blush tint + left accent, role="status"); (2) the chip becomes
+  **"Closest available"** in a cautious blush style (`.fitw-chip--caution`, NOT error-red) instead of
+  the confidence label; (3) the recommended ladder row uses a cautious highlight (`.fitw-srow--caution`,
+  blush tint + inset bar) instead of the navy "best" one, and its API summary ("Closest available — not
+  a comfortable fit") renders as-is; (4) the confident between/aside nudge is suppressed so it can't
+  contradict the banner. When `fits_comfortably` true/absent → identical to before. All text verbatim
+  from API; styles scoped under `.fitw`; mobile/reduced-motion/keyboard unchanged. 63 tests + Node
+  render-check pass; verified normal (34/28/38) unchanged and no-fit (42/30/36) shows banner + caution
+  chip + cautious row. Next: deployment.
 - 2026-06-27 — BACKEND fix to fit wording + no-genuine-fit case (engine + wording + §4/§5 spec). (1)
   Directional "consider the larger/smaller size" suggestions now gated on whether that neighbour size
   actually EXISTS — the largest size never says "larger size", the smallest never says "smaller size"
