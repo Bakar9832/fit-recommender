@@ -28,6 +28,8 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Backend fix: conditional/degree fit wording + no-genuine-fit (`fits_comfortably`/`fit_message`)
 - [x] Widget render: surface `fits_comfortably` honestly (caution "Closest available" chip + `fit_message`
       banner + cautious recommended-row highlight when false; unchanged when true) — visual-only
+- [x] Demo storefront: 8-piece seeded catalog + public `GET /v1/catalog` + `widget/storefront.html`
+      (grid → modal mounting the existing widget; image placeholders) — showcase only, not a shop
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -53,6 +55,24 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-28 — Demo STOREFRONT (showcase for the widget, not a shop — no cart/checkout/payments).
+  Migration `product_image_slug` added `Product.imageSlug String?` (additive; fit contract untouched).
+  Seed extended to an idempotent 8-piece Pakistani-pret catalog across 4 shared templates (Default Pret
+  Standard / Petite Pret / Formal Tailored[fitted] / Flowy Anarkali[loose]) with varied charts so the same
+  body gets different best-fits; realistic fabrics, garmentTypes, model_reference, stable imageSlugs.
+  DEMO-001 kept EXACT chart/model/fabric(null) so engine/route tests stay deterministic (renamed only).
+  New public read-only `GET /v1/catalog?outlet_key=` (`src/routes/catalog.js`, tenant-scoped, no token) →
+  [{id,sku,name,fabric,garmentType,imageSlug,model_reference}]; 422 missing key / 404 unknown outlet.
+  `widget/storefront.html` (vanilla, Ink & Blush, scoped `.sf-*`): fetches catalog → responsive grid with
+  image `images/{slug}.jpg` + fabric-coloured placeholder fallback (no real photos committed) → click opens
+  a modal that mounts the EXISTING `fitw.js` unforked (sets a `[data-outlet][data-product]` node + re-injects
+  fitw.js so its load-time init mounts it; only one such node exists at a time). `widget/images/README.md`
+  documents dropping free-licensed photos. Spec §3 (+imageSlug) and §7 (catalog endpoint) updated. Tests
+  63→66 (new catalogRoute: shape/scoping, 404, 422); all green. Verified live: catalog returns 8, varied
+  best-fits, clean + no-fit cases. Cleanup: removed my earlier curl-demo residue from demo-outlet
+  (products LAWN-001/KURTI-002/FORMAL-003 + "Curl Demo Template") so the grid is clean. Next: deployment.
+  Gotcha: storefront grid cards use `data-sku` (NOT data-outlet/data-product) so fitw never auto-mounts a
+  card; only the modal node carries the widget attributes.
 - 2026-06-28 — Widget render of the no-fit case (VISUAL only, `widget/fitw.js`). When
   `fits_comfortably === false`: (1) a non-alarming **banner** shows `fit_message` verbatim above the
   ladder (`.fitw-banner`, soft blush tint + left accent, role="status"); (2) the chip becomes

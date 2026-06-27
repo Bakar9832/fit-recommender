@@ -138,6 +138,7 @@ model Product {
 
   modelHeight     String?                            // fit-model height, display only e.g. "5'5\""
   modelSizeWorn   String?                            // size the fit model wears, e.g. "S"
+  imageSlug       String?                            // stable image basename for the demo storefront, e.g. "lawn-kameez-01"
 
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int?                               // index into fixed 12–16 palette
@@ -298,6 +299,11 @@ POST /v1/fit/recommend
   body: { outlet_key, sku, measurements: { bust, waist, hip, height? } }
   → 200 { recommended_size, confidence, alternative_size, zones, length_note, silhouette }
   → 422 if measurements missing/implausible (negative, out of 20–80in sanity range)
+
+# Public catalog (no token) — powers the demo storefront
+GET    /v1/catalog?outlet_key=...          list this outlet's products
+  → 200 [{ id, sku, name, fabric, garmentType, imageSlug, model_reference }]
+  → 422 missing outlet_key | 404 unknown outlet
 
 # Admin (admin_token in header)
 POST   /v1/admin/templates                 create chart template

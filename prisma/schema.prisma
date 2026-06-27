@@ -74,6 +74,7 @@ model Product {
   // strings only — not used in the fit math). e.g. modelHeight "5'5\"", size "S".
   modelHeight     String? // display string, e.g. "5'5\""
   modelSizeWorn   String? // e.g. "S" | "M"
+  imageSlug       String? // stable image basename, e.g. "lawn-kameez-01" (demo storefront)
 
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int? // index into fixed 12–16 palette

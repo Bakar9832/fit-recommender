@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fitting Room — Demo Storefront</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- id="fitw-fonts" so the widget reuses this link instead of injecting a duplicate -->
+    <link
+      id="fitw-fonts"
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    />
+    <style>
+      :root {
+        --paper: #f6f7f9;
+        --surface: #ffffff;
+        --navy: #2e4a63;
+        --blush: #c99aa4;
+        --ink: #1c2a3a;
+        --muted: #8893a1;
+        --line: #e7eaef;
+        --display: "Libre Caslon Display", Georgia, serif;
+        --body: "Hanken Grotesk", system-ui, sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--body);
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      .sf-wrap { max-width: 1040px; margin: 0 auto; padding: clamp(24px, 5vw, 56px) clamp(16px, 4vw, 36px) 64px; }
+
+      /* header */
+      .sf-eyebrow {
+        font-family: var(--mono); font-size: 12px; letter-spacing: .22em;
+        text-transform: uppercase; color: var(--navy); font-weight: 500;
+        display: flex; align-items: center; gap: 12px;
+      }
+      .sf-eyebrow::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+      .sf-wrap h1 {
+        font-family: var(--display); font-weight: 400; color: var(--navy);
+        font-size: clamp(30px, 5.5vw, 52px); line-height: 1.04; margin: 16px 0 10px; max-width: 18ch;
+      }
+      .sf-lede { font-size: clamp(14px, 2vw, 17px); color: #4d5a68; max-width: 52ch; margin: 0 0 8px; }
+      .sf-note {
+        display: inline-block; font-size: 12px; color: var(--ink);
+        background: rgba(201,154,164,.16); border: 1px solid var(--blush);
+        border-radius: 999px; padding: 5px 12px; margin-top: 10px;
+      }
+
+      .sf-tape {
+        position: relative; height: 26px; margin: 22px 0 8px;
+        border-top: 1px solid var(--line);
+        background: repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px 16px);
+        -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+        mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+      }
+      .sf-tape::before {
+        content: ""; position: absolute; inset: 0;
+        background: repeating-linear-gradient(90deg, var(--blush) 0 1.5px, transparent 1.5px 80px);
+        opacity: .5;
+      }
+
+      /* product grid */
+      .sf-grid {
+        display: grid; gap: clamp(14px, 2.5vw, 22px); margin-top: 20px;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      }
+      .sf-card {
+        display: flex; flex-direction: column; text-align: left;
+        background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
+        overflow: hidden; cursor: pointer; padding: 0; color: inherit; font: inherit;
+        transition: transform .14s, box-shadow .18s, border-color .18s;
+      }
+      .sf-card:hover { transform: translateY(-2px); box-shadow: 0 18px 40px -28px rgba(46,74,99,.45); border-color: #d7dde4; }
+      .sf-card:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+      .sf-thumb {
+        position: relative; aspect-ratio: 3 / 4; width: 100%;
+        display: flex; align-items: flex-end; justify-content: flex-start;
+        background: var(--ph, #e8ebf0);
+      }
+      .sf-thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .sf-thumb-tag {
+        position: relative; margin: 10px; font-family: var(--mono); font-size: 10px;
+        letter-spacing: .12em; text-transform: uppercase; color: #fff;
+        background: rgba(28,42,58,.55); padding: 3px 8px; border-radius: 999px;
+      }
+      .sf-cardbody { padding: 12px 14px 16px; }
+      .sf-cardname { font-family: var(--display); font-size: 17px; color: var(--ink); margin: 0 0 4px; }
+      .sf-cardmeta { font-size: 12.5px; color: var(--muted); }
+
+      footer {
+        margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
+        font-family: var(--mono); font-size: 11.5px; letter-spacing: .08em;
+        color: var(--muted); text-transform: uppercase;
+      }
+
+      /* modal */
+      .sf-modal[hidden] { display: none; }
+      .sf-modal {
+        position: fixed; inset: 0; z-index: 50; display: flex;
+        align-items: flex-start; justify-content: center; padding: clamp(10px, 4vw, 40px);
+        background: rgba(28,42,58,.45); overflow-y: auto;
+      }
+      .sf-dialog {
+        background: var(--paper); border-radius: 16px; max-width: 760px; width: 100%;
+        border: 1px solid var(--line); box-shadow: 0 40px 90px -40px rgba(28,42,58,.6);
+        display: grid; grid-template-columns: 1fr 1fr; overflow: hidden;
+      }
+      .sf-hero { position: relative; min-height: 280px; background: var(--ph, #e8ebf0); }
+      .sf-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .sf-hero-cap {
+        position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px;
+        background: linear-gradient(transparent, rgba(28,42,58,.55));
+        color: #fff;
+      }
+      .sf-hero-cap h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
+      .sf-hero-cap p { margin: 2px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .9; }
+      .sf-panel { padding: 16px; background: var(--surface); }
+      .sf-close {
+        position: absolute; top: 10px; right: 10px; z-index: 2;
+        width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
+        background: rgba(255,255,255,.9); color: var(--ink); font-size: 18px; line-height: 1;
+      }
+      .sf-close:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
+
+      @media (max-width: 640px) {
+        .sf-dialog { grid-template-columns: 1fr; }
+        .sf-hero { min-height: 200px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="sf-wrap">
+      <div class="sf-eyebrow">Fitting Room · Demo Storefront</div>
+      <h1>Pakistani pret, sized with confidence.</h1>
+      <p class="sf-lede">
+        A demo storefront for one outlet. Browse the pieces, open one, and try the embedded
+        fit widget — enter your measurements to see the recommended size and how it'll sit.
+      </p>
+      <span class="sf-note">Demo only — showcases the fit widget. No cart, no checkout.</span>
+
+      <div class="sf-tape" aria-hidden="true"></div>
+
+      <section class="sf-grid" id="grid" aria-label="Products" aria-busy="true">
+        <p id="grid-status" style="color: var(--muted); font-size: 14px">Loading the collection…</p>
+      </section>
+
+      <footer>Fitting Room · a demonstration storefront for one outlet</footer>
+    </main>
+
+    <!-- product modal with the embedded fit widget -->
+    <div class="sf-modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="sf-dialog">
+        <button class="sf-close" id="modal-close" aria-label="Close">&times;</button>
+        <div class="sf-hero" id="modal-hero">
+          <div class="sf-hero-cap">
+            <h2 id="modal-title"></h2>
+            <p id="modal-sub"></p>
+          </div>
+        </div>
+        <div class="sf-panel">
+          <!-- The existing widget mounts here via its data-attributes (fitw.js, unforked). -->
+          <div id="fit-mount"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+        var API_BASE = "http://localhost:3000"; // demo: API origin
+        var OUTLET_KEY = "demo-outlet";
+
+        var grid = document.getElementById("grid");
+        var status = document.getElementById("grid-status");
+        var modal = document.getElementById("modal");
+        var hero = document.getElementById("modal-hero");
+        var titleEl = document.getElementById("modal-title");
+        var subEl = document.getElementById("modal-sub");
+        var mount = document.getElementById("fit-mount");
+        var closeBtn = document.getElementById("modal-close");
+        var lastFocused = null;
+
+        // Fabric → flat placeholder colour (within the Ink & Blush palette).
+        function fabricColor(fabric) {
+          if (fabric === "lawn") return "#dfe7e2";
+          if (fabric === "cotton") return "#e3e7ee";
+          if (fabric === "formal") return "#cdd6e0";
+          return "#e8ebf0";
+        }
+        function imageUrl(slug) {
+          return slug ? "images/" + slug + ".jpg" : "";
+        }
+        function esc(s) {
+          return String(s == null ? "" : s)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+        function fabricLabel(f) { return f ? f[0].toUpperCase() + f.slice(1) : "Pret"; }
+        function garmentLabel(g) { return g === "two_piece" ? "Two-piece" : "One-piece"; }
+
+        function cardHTML(p) {
+          var url = imageUrl(p.imageSlug);
+          var img = url
+            ? '<img src="' + esc(url) + '" alt="" loading="lazy" ' +
+              'onerror="this.remove()" />'
+            : "";
+          return (
+            '<button class="sf-card" type="button" data-sku="' + esc(p.sku) + '">' +
+            '<span class="sf-thumb" style="--ph:' + fabricColor(p.fabric) + '">' +
+            img + '<span class="sf-thumb-tag">' + esc(fabricLabel(p.fabric)) + "</span></span>" +
+            '<span class="sf-cardbody">' +
+            '<span class="sf-cardname">' + esc(p.name) + "</span>" +
+            '<span class="sf-cardmeta">' + esc(garmentLabel(p.garmentType)) + "</span>" +
+            "</span></button>"
+          );
+        }
+
+        var bySku = {};
+
+        function render(products) {
+          products.forEach(function (p) { bySku[p.sku] = p; });
+          grid.setAttribute("aria-busy", "false");
+          if (!products.length) {
+            status.textContent = "No products yet.";
+            return;
+          }
+          grid.innerHTML = products.map(cardHTML).join("");
+        }
+
+        function openProduct(sku) {
+          var p = bySku[sku];
+          if (!p) return;
+          lastFocused = document.activeElement;
+
+          titleEl.textContent = p.name;
+          subEl.textContent = fabricLabel(p.fabric) + " · " + garmentLabel(p.garmentType);
+
+          // hero image / placeholder
+          hero.style.setProperty("--ph", fabricColor(p.fabric));
+          var existing = hero.querySelector("img");
+          if (existing) existing.remove();
+          var url = imageUrl(p.imageSlug);
+          if (url) {
+            var im = document.createElement("img");
+            im.src = url; im.alt = "";
+            im.onerror = function () { im.remove(); };
+            hero.insertBefore(im, hero.firstChild);
+          }
+
+          // Fresh mount node with the widget's data-attributes, then (re)load
+          // fitw.js so its init() scans and mounts THIS product — unforked reuse.
+          mount.innerHTML =
+            '<div data-outlet="' + esc(OUTLET_KEY) + '" data-product="' + esc(p.sku) +
+            '" data-api="' + esc(API_BASE) + '"></div>';
+          loadWidget();
+
+          modal.hidden = false;
+          closeBtn.focus();
+          document.addEventListener("keydown", onKey);
+        }
+
+        function closeModal() {
+          modal.hidden = true;
+          mount.innerHTML = "";
+          document.removeEventListener("keydown", onKey);
+          if (lastFocused && lastFocused.focus) lastFocused.focus();
+        }
+
+        function onKey(e) {
+          if (e.key === "Escape") closeModal();
+        }
+
+        // Re-inject fitw.js so its load-time init() mounts the current node.
+        // (fitw.js is used as-is; only one [data-outlet][data-product] exists at a time.)
+        function loadWidget() {
+          var old = document.getElementById("fitw-script");
+          if (old) old.remove();
+          var s = document.createElement("script");
+          s.id = "fitw-script";
+          s.src = "fitw.js?v=" + Date.now();
+          document.body.appendChild(s);
+        }
+
+        grid.addEventListener("click", function (e) {
+          var card = e.target.closest(".sf-card");
+          if (card && grid.contains(card)) openProduct(card.getAttribute("data-sku"));
+        });
+        closeBtn.addEventListener("click", closeModal);
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) closeModal();
+        });
+
+        fetch(API_BASE + "/v1/catalog?outlet_key=" + encodeURIComponent(OUTLET_KEY))
+          .then(function (r) { return r.json(); })
+          .then(render)
+          .catch(function () {
+            grid.setAttribute("aria-busy", "false");
+            status.textContent =
+              "Couldn't load the collection. Make sure the API is running on " + API_BASE + ".";
+          });
+      })();
+    </script>
+  </body>
+</html>
