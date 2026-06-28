@@ -46,8 +46,8 @@ docs/
 - CUID string ids.
 
 ## Scope guardrails
-- **In scope now:** ready-to-wear fit engine, size-chart templates + rows, products, CSV import, `POST /v1/fit/recommend`.
-- **NOT now (do not build):** pairing engine (Phase 2), unstitched fabric calc (Phase 3), estimation quiz (Phase 1.5), marketplace/storefront (never).
+- **In scope now:** ready-to-wear fit engine, size-chart templates + rows, products, CSV import, `POST /v1/fit/recommend`, unstitched fabric-sufficiency (backend engine done — see spec §11; remaining: admin per-component yardage input (schema + validation done, UI pending) and the widget garment-picker).
+- **NOT now (do not build):** pairing engine (Phase 2), estimation quiz (Phase 1.5), marketplace/storefront-platform (never).
 - Phase 2 columns (`colorSlot`, `formality`, `styleTag`) exist in the schema but stay unused in Phase 1.
 
 ## Current state

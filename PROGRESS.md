@@ -32,6 +32,8 @@ Work the **Current task** only. Don't start the next item until the current one 
       (grid → modal mounting the existing widget; image placeholders) — showcase only, not a shop
 - [x] Storefront modal fixes (visual-only): responsive large-screen sizing + all four inputs typeable
 - [x] Storefront hero image fix (visual-only): full garment shown (object-fit:contain) + capped on mobile
+- [x] Unstitched fabric-sufficiency (backend): schema + `checkFabric` engine + per-component bands + tests
+- [ ] Unstitched: admin yardage input (per-component meters) — then widget garment-picker
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -57,6 +59,23 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-28 — Built UNSTITCHED fabric-sufficiency (BACKEND only; spec §11). SEPARATE from the fit engine —
+  `recommendFit()` untouched, stitched flow unchanged. Migration `product_unstitched_fabric` (additive):
+  `Product.unstitched Boolean @default(false)` + per-component included yardage in METERS
+  (`fabricShirtFront/Back/Sleeves/Trouser/Dupatta Float?`). App-rule: all five required when unstitched=true,
+  enforced via `createProductSchema.superRefine` (admin route + CSV inherit it; stitched unaffected, default
+  false). New pure services: `fabricRequirements.js` (GARMENT_COMPONENTS, coarse height length-bands
+  short<62≤regular<67≤tall, base meters per component + SAFETY_MARGIN 10%, `neededFor`/`lengthBand`/`round2`;
+  TAILOR-VALIDATION-PENDING), `fabricWording.js` (`fabricNote(component,sufficient)` guidance-framed,
+  garment-focused, no body words, no numbers + CAVEAT), `fabricEngine.js` `checkFabric({measurements,garments,
+  included})` → `{ all_sufficient, caveat, components:[{garment,component,needed_estimate,included,sufficient,
+  note}] }`. Each component checked INDEPENDENTLY (too-short front caught even if total cloth suffices; missing
+  included → null/insufficient). Body=inches, fabric=meters. Spec §11 added (+ §3 schema sync + roadmap
+  pointer). 77 tests pass (11 new: per-component T/F, borderline front, multi-garment, missing component,
+  size-band differences, margin math, unstitched-missing-yardage rejected, no-body/no-number guard). Demo:
+  tall (70") front 1.6m < needed 1.65m → flagged while back/sleeves/trouser/dupatta ample. Next: admin
+  per-component yardage input, then widget garment-picker. Scope note: CLAUDE.md lists unstitched as "not
+  now" — built this session under explicit user direction.
 - 2026-06-28 — Fixed cropped modal hero image (VISUAL/CSS only, `widget/storefront.html`). `.sf-hero img`
   `object-fit: cover` → `contain` so the WHOLE garment shows (no head/hem crop); hero background set to a
   soft neutral (#edf0f5) so portrait letterbox looks intentional; wide hero min-height 360px (portrait-

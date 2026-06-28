@@ -74,7 +74,23 @@ export const replaceRowsSchema = z
     { message: "sizeLabel values must be unique within a template", path: ["rows"] }
   );
 
-/** POST /v1/admin/products. Phase 2 cols accepted but unused in Phase 1 logic. */
+// Included fabric per component, in meters (spec §11). Generous upper bound.
+const fabricMeters = z.number().finite().positive().max(20);
+
+// The five unstitched fabric components (schema fields drop the "fabric" prefix-case).
+const UNSTITCHED_FABRIC_FIELDS = [
+  "fabricShirtFront",
+  "fabricShirtBack",
+  "fabricSleeves",
+  "fabricTrouser",
+  "fabricDupatta",
+];
+
+/**
+ * POST /v1/admin/products. Phase 2 cols accepted but unused in Phase 1 logic.
+ * Unstitched rule (spec §11): when `unstitched` is true, ALL five per-component
+ * fabric yardages are required; stitched products ignore them.
+ */
 export const createProductSchema = z
   .object({
     sku: z.string().min(1, "sku is required"),
@@ -87,8 +103,27 @@ export const createProductSchema = z
     colorSlot: z.number().int().nullish(),
     formality: z.string().min(1).nullish(),
     styleTag: z.string().min(1).nullish(),
+    // Unstitched fabric-sufficiency (spec §11) — meters per component.
+    unstitched: z.boolean().optional().default(false),
+    fabricShirtFront: fabricMeters.nullish(),
+    fabricShirtBack: fabricMeters.nullish(),
+    fabricSleeves: fabricMeters.nullish(),
+    fabricTrouser: fabricMeters.nullish(),
+    fabricDupatta: fabricMeters.nullish(),
   })
-  .strict();
+  .strict()
+  .superRefine((d, ctx) => {
+    if (!d.unstitched) return;
+    for (const field of UNSTITCHED_FABRIC_FIELDS) {
+      if (typeof d[field] !== "number") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: "required (in meters) when unstitched is true",
+        });
+      }
+    }
+  });
 
 /** Flatten a ZodError into the API's { path, message }[] detail shape. */
 export function zodDetails(error) {

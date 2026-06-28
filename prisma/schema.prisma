@@ -76,6 +76,16 @@ model Product {
   modelSizeWorn   String? // e.g. "S" | "M"
   imageSlug       String? // stable image basename, e.g. "lawn-kameez-01" (demo storefront)
 
+  // --- Unstitched fabric-sufficiency (spec §11): included yardage per component,
+  //     in METERS. App-level rule: when `unstitched` is true, all five fabric*
+  //     fields are required (enforced in validation, not the DB). ---
+  unstitched       Boolean @default(false)
+  fabricShirtFront Float? // meters of cloth included for the shirt front
+  fabricShirtBack  Float? // meters for the shirt back
+  fabricSleeves    Float? // meters for the sleeves
+  fabricTrouser    Float? // meters for the trouser
+  fabricDupatta    Float? // meters for the dupatta
+
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int? // index into fixed 12–16 palette
   formality       String? // 'casual'|'semi'|'formal'

@@ -140,6 +140,15 @@ model Product {
   modelSizeWorn   String?                            // size the fit model wears, e.g. "S"
   imageSlug       String?                            // stable image basename for the demo storefront, e.g. "lawn-kameez-01"
 
+  // --- Unstitched fabric-sufficiency (§11): included yardage per component, in METERS.
+  //     App-level rule: all five required when `unstitched` is true. ---
+  unstitched       Boolean @default(false)
+  fabricShirtFront Float?
+  fabricShirtBack  Float?
+  fabricSleeves    Float?
+  fabricTrouser    Float?
+  fabricDupatta    Float?
+
   // --- Phase 2 foresight: add now, leave unused, so no migration later ---
   colorSlot       Int?                               // index into fixed 12–16 palette
   formality       String?                            // 'casual'|'semi'|'formal'
@@ -358,4 +367,50 @@ The bottleneck is data, not code. Make it painless:
 
 - **1.5 — Estimation quiz:** for shoppers who skip measurements. Height + weight + a body-shape pick + usual size → *estimate* bust/waist/hip, then feed the same engine. (Weight is an input to estimating measurements, never an addition to them.)
 - **2 — Pairing engine:** customer-chosen intent (Contrast / Tonal / Complementary / Neutral) as lookups on a 12–16 slot color palette + category + formality filter. The `colorSlot` / `formality` / `styleTag` columns are already in the Phase 1 schema (unused), and the `@@index` for filtered queries is too — so this phase is logic-only, no migration.
-- **3 — Unstitched fabric-sufficiency:** needed = kameez piece (length × flare factor) + sleeve piece + trouser piece − fabric-width adjustment, compared to the seller's stated yardage. Requires the shopper to pick the intended cut. Ship a coarse band version first; precise yardage needs tailor validation.
+- **3 — Unstitched fabric-sufficiency:** needed = kameez piece (length × flare factor) + sleeve piece + trouser piece − fabric-width adjustment, compared to the seller's stated yardage. Requires the shopper to pick the intended cut. Ship a coarse band version first; precise yardage needs tailor validation. **Initial backend now built — see §11.**
+
+---
+
+## 11. Unstitched fabric-sufficiency (backend — initial)
+
+A sufficiency **CHECK**, not a garment recommender or visualizer. The outlet lists included cloth **per component** (like a Sapphire unstitched listing); the customer enters measurements + the garment(s) they intend to make; the system says, **per component**, whether there's enough cloth. It never says what to make or how it will look. **Body = inches; fabric = meters.** Separate from the size-chart fit engine — stitched items are untouched and `recommendFit()` is not involved.
+
+### Schema (additive, §3)
+`Product.unstitched` (Boolean, default false) + per-component included yardage in meters: `fabricShirtFront`, `fabricShirtBack`, `fabricSleeves`, `fabricTrouser`, `fabricDupatta` (all `Float?`).
+- **Rule (app-level, not DB):** when `unstitched` is true, **all five** fabric fields are **required** (enforced in `createProductSchema`; a missing one → 422). Stitched products ignore them.
+
+### Garment → components
+A code constant (`src/services/fabricRequirements.js`), not a DB table:
+- `kameez_kurti` → `shirtFront` + `shirtBack` + `sleeves`
+- `trousers` → `trouser`
+- `dupatta` → `dupatta` (fixed-ish length check)
+
+### Per-component requirement bands (meters, ⚠️ tailor-validation-pending)
+Coarse **length band** from height (inches): `short < 62 ≤ regular < 67 ≤ tall` (absent height → `regular`). Base meters per band, then **+10% safety margin** (`needed_estimate = round2(base × 1.10)`):
+
+| garment | component | short | regular | tall |
+|---------|-----------|-------|---------|------|
+| kameez_kurti | shirtFront | 1.10 | 1.30 | 1.50 |
+| kameez_kurti | shirtBack  | 1.10 | 1.30 | 1.50 |
+| kameez_kurti | sleeves    | 0.55 | 0.65 | 0.80 |
+| trousers | trouser       | 2.20 | 2.50 | 2.75 |
+| dupatta | dupatta        | 2.40 | 2.50 | 2.50 |
+
+These are **starting estimates for a sufficiency check only**, never a cutting plan — tune with a tailor before claiming accuracy.
+
+### Engine output (`checkFabric`, pure)
+`checkFabric({ measurements, garments:[types], included:{ shirtFront, shirtBack, sleeves, trouser, dupatta } })` →
+```json
+{
+  "all_sufficient": false,
+  "caveat": "Estimated guidance — confirm with your tailor.",
+  "components": [
+    { "garment": "kameez_kurti", "component": "shirtFront", "needed_estimate": 1.65, "included": 1.6,
+      "sufficient": false, "note": "You may want extra fabric for the front piece at your length." },
+    { "garment": "kameez_kurti", "component": "shirtBack",  "needed_estimate": 1.65, "included": 1.8,
+      "sufficient": true,  "note": "The back piece should be enough for a kameez at your size." }
+  ]
+}
+```
+- Each component is checked **independently** (`sufficient = included >= needed_estimate`), so a too-short FRONT is flagged even if the total cloth would suffice. A component with no included cloth → `included: null`, `sufficient: false`.
+- Notes are **guidance-framed and garment-focused** (never a guarantee, never about the body) and carry **no numbers** (the estimate lives in the numeric fields; `caveat` covers precision).
