@@ -105,16 +105,22 @@
       .sf-modal[hidden] { display: none; }
       .sf-modal {
         position: fixed; inset: 0; z-index: 50; display: flex;
-        align-items: flex-start; justify-content: center; padding: clamp(10px, 4vw, 40px);
-        background: rgba(28,42,58,.45); overflow-y: auto;
+        align-items: center; justify-content: center; padding: clamp(12px, 3vw, 32px);
+        background: rgba(28,42,58,.45);
       }
       .sf-dialog {
-        background: var(--paper); border-radius: 16px; max-width: 760px; width: 100%;
+        position: relative; min-width: 0;
+        background: var(--paper); border-radius: 16px;
+        width: 100%; max-width: 920px; max-height: 90vh; overflow: auto;
         border: 1px solid var(--line); box-shadow: 0 40px 90px -40px rgba(28,42,58,.6);
-        display: grid; grid-template-columns: 1fr 1fr; overflow: hidden;
+        display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
       }
-      .sf-hero { position: relative; min-height: 280px; background: var(--ph, #e8ebf0); }
-      .sf-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      /* let both columns shrink instead of forcing the dialog past 90vw */
+      .sf-dialog > * { min-width: 0; }
+      /* Clothing: show the WHOLE garment (contain, never crop). Soft neutral
+         letterbox so portrait images sit intentionally in the column. */
+      .sf-hero { position: relative; min-height: 360px; background: #edf0f5; }
+      .sf-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
       .sf-hero-cap {
         position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 16px;
         background: linear-gradient(transparent, rgba(28,42,58,.55));
@@ -122,17 +128,31 @@
       }
       .sf-hero-cap h2 { font-family: var(--display); font-weight: 400; font-size: 20px; margin: 0; }
       .sf-hero-cap p { margin: 2px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .9; }
-      .sf-panel { padding: 16px; background: var(--surface); }
+      /* the embedded widget is the right column; it brings its own padding/card */
+      .sf-panel { min-width: 0; background: var(--surface); display: flex; }
+      #fit-mount { width: 100%; min-width: 0; }
       .sf-close {
-        position: absolute; top: 10px; right: 10px; z-index: 2;
+        position: absolute; top: 10px; right: 10px; z-index: 3;
         width: 34px; height: 34px; border-radius: 50%; border: 0; cursor: pointer;
-        background: rgba(255,255,255,.9); color: var(--ink); font-size: 18px; line-height: 1;
+        background: rgba(255,255,255,.92); color: var(--ink); font-size: 18px; line-height: 1;
       }
       .sf-close:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
 
-      @media (max-width: 640px) {
+      /* Inside the modal the dialog already splits hero | widget, so render the
+         embedded widget as a SINGLE column (form stacked above result) — this
+         gives the form the full panel width so all four inputs (incl. the
+         waist/hip row) are properly sized and typeable. */
+      #fit-mount .fitw-card {
+        grid-template-columns: 1fr; border: 0; border-radius: 0; box-shadow: none;
+      }
+      #fit-mount .fitw-panel--form {
+        border-right: 0; border-bottom: 1px solid var(--fitw-line, #e7eaef);
+      }
+
+      @media (max-width: 720px) {
         .sf-dialog { grid-template-columns: 1fr; }
-        .sf-hero { min-height: 200px; }
+        /* cap the stacked image so it doesn't push the form off-screen */
+        .sf-hero { min-height: 200px; max-height: 46vh; }
       }
       @media (prefers-reduced-motion: reduce) {
         * { transition: none !important; }

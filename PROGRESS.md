@@ -30,6 +30,8 @@ Work the **Current task** only. Don't start the next item until the current one 
       banner + cautious recommended-row highlight when false; unchanged when true) — visual-only
 - [x] Demo storefront: 8-piece seeded catalog + public `GET /v1/catalog` + `widget/storefront.html`
       (grid → modal mounting the existing widget; image placeholders) — showcase only, not a shop
+- [x] Storefront modal fixes (visual-only): responsive large-screen sizing + all four inputs typeable
+- [x] Storefront hero image fix (visual-only): full garment shown (object-fit:contain) + capped on mobile
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -55,6 +57,29 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-28 — Fixed cropped modal hero image (VISUAL/CSS only, `widget/storefront.html`). `.sf-hero img`
+  `object-fit: cover` → `contain` so the WHOLE garment shows (no head/hem crop); hero background set to a
+  soft neutral (#edf0f5) so portrait letterbox looks intentional; wide hero min-height 360px (portrait-
+  friendly); on ≤720px the stacked hero is capped `max-height:46vh` so the form stays reachable without
+  excessive scroll. Grid card thumbnails LEFT on `cover` (uniform 3/4 portrait grid looks clean; contain
+  would letterbox them inconsistently) — only the modal hero changed. Verified via headless Edge at 1680px
+  (full dress visible) and 480px (capped image, form reachable). demo.html + fitw.js untouched; 66 tests
+  pass. Next: deployment.
+- 2026-06-28 — Fixed two storefront modal bugs (VISUAL/layout only, `widget/storefront.html`; fitw.js,
+  API, contract, wording, CORS untouched). BUG 1 (modal tiny on large screens): dialog now centered,
+  `width:100%` capped `max-width:920px`, `max-height:90vh` + internal `overflow:auto`; hero image and the
+  embedded widget sit side-by-side on wide and stack at ≤720px. BUG 2 (waist/hip not typeable): root cause
+  was nested 2-col grids — the dialog (hero|panel) held the widget which is itself a 2-col card (form|result),
+  double-squeezing the waist/hip row to ~85px. Fix: render the embedded widget as a SINGLE column inside the
+  modal (`#fit-mount .fitw-card{grid-template-columns:1fr}` + border tidy) so the form spans the full panel;
+  added `min-width:0` on dialog/columns/#fit-mount to stop grid blow-out. Verified it was layout, not an
+  overlay/pointer-events issue (close btn sits over the hero, nothing covers the fields). Verified via
+  headless Edge screenshots at 480/1440/1680px: modal sized well, ALL FOUR inputs full-width + typeable,
+  clean fit (M/Confident) and no-fit (XL/Closest available + banner) both render inside the modal; collapses
+  cleanly to single column on narrow. demo.html unchanged. 66 tests still pass. Gotcha: Edge headless
+  `--window-size=W` doesn't equal CSS innerWidth (414→476), so a too-narrow screenshot canvas LOOKS clipped
+  though `documentElement.scrollWidth==innerWidth` (no real overflow) — measure rects / match canvas to
+  innerWidth (or `--force-device-scale-factor=1`) before trusting a "clipping" screenshot. Next: deployment.
 - 2026-06-28 — Demo STOREFRONT (showcase for the widget, not a shop — no cart/checkout/payments).
   Migration `product_image_slug` added `Product.imageSlug String?` (additive; fit contract untouched).
   Seed extended to an idempotent 8-piece Pakistani-pret catalog across 4 shared templates (Default Pret
