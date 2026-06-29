@@ -139,6 +139,49 @@ describe("admin CRUD happy flow (outlet A)", () => {
     expect(res.status).toBe(422);
     expect((await res.json()).error).toBe("invalid_request");
   });
+
+  it("creates an unstitched product with all five yardages (spec §11)", async () => {
+    const res = await api("/products", {
+      token: A_TOKEN,
+      body: {
+        sku: "ADM-TEST-UNST",
+        templateId: aTemplateId,
+        garmentType: "two_piece",
+        unstitched: true,
+        fabricShirtFront: 1.15,
+        fabricShirtBack: 1.15,
+        fabricSleeves: 0.66,
+        fabricTrouser: 2.5,
+        fabricDupatta: 2.5,
+      },
+    });
+    expect(res.status).toBe(201);
+    const product = await res.json();
+    expect(product.unstitched).toBe(true);
+    expect(product.fabricDupatta).toBe(2.5);
+  });
+
+  it("422s on an unstitched product missing a yardage field, with field details", async () => {
+    const res = await api("/products", {
+      token: A_TOKEN,
+      body: {
+        sku: "ADM-TEST-UNST-BAD",
+        templateId: aTemplateId,
+        garmentType: "two_piece",
+        unstitched: true,
+        fabricShirtFront: 1.15,
+        fabricShirtBack: 1.15,
+        fabricSleeves: 0.66,
+        // fabricTrouser + fabricDupatta missing
+      },
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("invalid_request");
+    const paths = body.details.map((d) => d.path);
+    expect(paths).toContain("fabricTrouser");
+    expect(paths).toContain("fabricDupatta");
+  });
 });
 
 describe("admin auth", () => {

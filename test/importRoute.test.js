@@ -75,6 +75,30 @@ describe("POST /v1/admin/import", () => {
     expect(count).toBe(3);
   });
 
+  it("imports an unstitched row and reports an unstitched row missing yardage (spec §11)", async () => {
+    const csv = [
+      "sku,template,garmentType,unstitched,fabricShirtFront,fabricShirtBack,fabricSleeves,fabricTrouser,fabricDupatta",
+      `CSV-TEST-UNST-OK,${TEMPLATE_NAME},two_piece,true,1.15,1.15,0.66,2.5,2.5`,
+      `CSV-TEST-UNST-BAD,${TEMPLATE_NAME},two_piece,true,1.15,1.15,0.66,,`, // trouser + dupatta missing
+    ].join("\n");
+
+    const res = await importCsv(csv);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.imported).toBe(1);
+    expect(body.skipped).toBe(1);
+    expect(body.errors[0].row).toBe(2);
+    expect(body.errors[0].reason).toMatch(/fabricTrouser|fabricDupatta/);
+
+    // the valid unstitched row landed, with its yardage
+    const ok = await prisma.product.findFirst({ where: { sku: "CSV-TEST-UNST-OK" } });
+    expect(ok.unstitched).toBe(true);
+    expect(ok.fabricDupatta).toBe(2.5);
+    // the bad row did not
+    const bad = await prisma.product.findFirst({ where: { sku: "CSV-TEST-UNST-BAD" } });
+    expect(bad).toBeNull();
+  });
+
   it("imports good rows and reports a bad row without failing the file", async () => {
     const csv = [
       HEADER,

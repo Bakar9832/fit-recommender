@@ -62,4 +62,20 @@ router.get("/v1/catalog", async (req, res, next) => {
   }
 });
 
+/**
+ * Per-component included yardage (meters) for an unstitched product, keyed to
+ * match the fabric engine's `included` input. `null` for stitched products.
+ * @param {object} p product row (with fabric* fields)
+ */
+export function includedFabric(p) {
+  if (!p.unstitched) return null;
+  return {
+    shirtFront: p.fabricShirtFront ?? null,
+    shirtBack: p.fabricShirtBack ?? null,
+    sleeves: p.fabricSleeves ?? null,
+    trouser: p.fabricTrouser ?? null,
+    dupatta: p.fabricDupatta ?? null,
+  };
+}
+
 export default router;

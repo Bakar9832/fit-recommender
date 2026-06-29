@@ -33,7 +33,8 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Storefront modal fixes (visual-only): responsive large-screen sizing + all four inputs typeable
 - [x] Storefront hero image fix (visual-only): full garment shown (object-fit:contain) + capped on mobile
 - [x] Unstitched fabric-sufficiency (backend): schema + `checkFabric` engine + per-component bands + tests
-- [ ] Unstitched: admin yardage input (per-component meters) — then widget garment-picker
+- [x] Unstitched admin: create/import yardage (validation reused), CSV columns, seed item, public read fields
+- [ ] Unstitched: widget garment-picker (next) — calls `checkFabric` for items where `unstitched` is true
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -59,6 +60,22 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-28 — Unstitched ADMIN support (backend/admin only; no widget). Reused the existing
+  `createProductSchema` rule (unstitched ⇒ all five `fabric*` meters required) — flows through
+  `POST /v1/admin/products` (422 with per-field details when a yardage is missing) and CSV import.
+  CSV: added `unstitched` + 5 `fabric*` columns to `IMPORT_COLUMNS` (so the downloadable template +
+  sample include them) with `boolOrUndefined`/`numericOrUndefined` coercion; a bad unstitched row is
+  reported per-row, file still imports (verified). Docs: `docs/csv-import.md` columns + rule; sample
+  CSV gains the columns + an unstitched example row (example count 3→4). Seed: added idempotent
+  Sapphire-style `UNSTITCHED-3PC-09` (front/back 1.15, sleeves 0.66, trouser/dupatta 2.5) → catalog
+  now 9. Public read paths (no token, tenant-scoped): `GET /v1/catalog` and `POST /v1/fit/recommend`
+  now return `unstitched` + `included_fabric` ({shirtFront,shirtBack,sleeves,trouser,dupatta} meters,
+  keys match `checkFabric`'s `included`; null for stitched) via shared `includedFabric()` helper in
+  catalog.js (fit.js imports it). Spec §11 updated with admin + read-path notes. 82 tests pass (+5:
+  admin unstitched happy/422, CSV unstitched valid+missing, catalog+fit read fields). Verified live:
+  catalog shows the unstitched item; missing-yardage create → 422. Next: widget garment-picker.
+  Gotcha: left catalog.js mid-edit last turn (referenced an undefined `includedFabric`); resolved by
+  defining + exporting the helper this session.
 - 2026-06-28 — Built UNSTITCHED fabric-sufficiency (BACKEND only; spec §11). SEPARATE from the fit engine —
   `recommendFit()` untouched, stitched flow unchanged. Migration `product_unstitched_fabric` (additive):
   `Product.unstitched Boolean @default(false)` + per-component included yardage in METERS

@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../lib/prisma.js";
 import { recommendRequestSchema } from "../lib/validation.js";
 import { recommendFit } from "../services/fitEngine.js";
+import { includedFabric } from "./catalog.js";
 
 const router = Router();
 
@@ -70,7 +71,15 @@ router.post("/v1/fit/recommend", async (req, res, next) => {
         ? { height: product.modelHeight ?? null, size_worn: product.modelSizeWorn ?? null }
         : null;
 
-    return res.status(200).json({ ...result, size_guide, model_reference });
+    // Let the widget detect an unstitched item (it'll branch to the garment
+    // picker next session). Stitched products → unstitched:false, included_fabric:null.
+    return res.status(200).json({
+      ...result,
+      size_guide,
+      model_reference,
+      unstitched: product.unstitched,
+      included_fabric: includedFabric(product),
+    });
   } catch (err) {
     return next(err);
   }

@@ -1,4 +1,5 @@
-sku,template,garmentType,name,fabric,fitTypeOverride,colorSlot,formality,styleTag
-LAWN-001,Default Pret Standard,two_piece,Summer Lawn Suit,lawn,,3,casual,ethnic
-KURTI-002,Default Pret Standard,one_piece,Everyday Kurti,cotton,fitted,,,
-FORMAL-003,Default Pret Standard,two_piece,Evening Formal,formal,,,formal,fusion
+sku,template,garmentType,name,fabric,fitTypeOverride,colorSlot,formality,styleTag,unstitched,fabricShirtFront,fabricShirtBack,fabricSleeves,fabricTrouser,fabricDupatta
+LAWN-001,Default Pret Standard,two_piece,Summer Lawn Suit,lawn,,3,casual,ethnic,false,,,,,
+KURTI-002,Default Pret Standard,one_piece,Everyday Kurti,cotton,fitted,,,,false,,,,,
+FORMAL-003,Default Pret Standard,two_piece,Evening Formal,formal,,,formal,fusion,false,,,,,
+UNSTITCHED-3PC-IMPORT,Default Pret Standard,two_piece,Unstitched Lawn 3-Piece,lawn,,,,,true,1.15,1.15,0.66,2.5,2.5

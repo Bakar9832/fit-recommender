@@ -59,6 +59,27 @@ describe("POST /v1/fit/recommend", () => {
     });
     expect(body.silhouette).toEqual({ bust: 37, waist: 29, hip: 39 });
     expect(body.length_note).toBeNull(); // seeded rows have no kameezLength
+    // stitched product → unstitched flags present and empty (spec §11 read path)
+    expect(body.unstitched).toBe(false);
+    expect(body.included_fabric).toBeNull();
+  });
+
+  it("exposes unstitched + included_fabric for an unstitched product", async () => {
+    const res = await recommend({
+      outlet_key: "demo-outlet",
+      sku: "UNSTITCHED-3PC-09",
+      measurements: { bust: 33, waist: 25, hip: 35 },
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.unstitched).toBe(true);
+    expect(body.included_fabric).toEqual({
+      shirtFront: 1.15,
+      shirtBack: 1.15,
+      sleeves: 0.66,
+      trouser: 2.5,
+      dupatta: 2.5,
+    });
   });
 
   it("includes the multi-size view, size_guide, and model_reference", async () => {

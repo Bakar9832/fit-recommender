@@ -414,3 +414,7 @@ These are **starting estimates for a sufficiency check only**, never a cutting p
 ```
 - Each component is checked **independently** (`sufficient = included >= needed_estimate`), so a too-short FRONT is flagged even if the total cloth would suffice. A component with no included cloth → `included: null`, `sufficient: false`.
 - Notes are **guidance-framed and garment-focused** (never a guarantee, never about the body) and carry **no numbers** (the estimate lives in the numeric fields; `caveat` covers precision).
+
+### Admin + read paths
+- **Create/import:** `POST /v1/admin/products` and the CSV import both run `createProductSchema`, which enforces the "all five `fabric*` required when `unstitched`" rule — a missing yardage → `422` (single create) or a per-row skip with reason (CSV), the rest of the file still importing. CSV adds the columns `unstitched, fabricShirtFront, fabricShirtBack, fabricSleeves, fabricTrouser, fabricDupatta` (see `docs/csv-import.md`).
+- **Public read (no token, tenant-scoped):** `GET /v1/catalog` and `POST /v1/fit/recommend` both return `unstitched` (boolean) and `included_fabric` — `{ shirtFront, shirtBack, sleeves, trouser, dupatta }` in meters (keys match the engine's `included` input), or `null` for stitched products — so the widget can detect an unstitched item and feed `checkFabric`.

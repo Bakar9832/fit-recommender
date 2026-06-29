@@ -37,10 +37,32 @@ describe("GET /v1/catalog", () => {
     const demo = items.find((i) => i.sku === "DEMO-001");
     // exactly the public catalog shape (no admin/internal fields leaked)
     expect(Object.keys(demo).sort()).toEqual(
-      ["fabric", "garmentType", "id", "imageSlug", "model_reference", "name", "sku"].sort()
+      [
+        "fabric", "garmentType", "id", "imageSlug", "included_fabric",
+        "model_reference", "name", "sku", "unstitched",
+      ].sort()
     );
     expect(demo.imageSlug).toBe("lawn-two-piece-01");
     expect(demo.model_reference).toEqual({ height: "5'6\"", size_worn: "M" });
+    // stitched product → unstitched false, no included_fabric
+    expect(demo.unstitched).toBe(false);
+    expect(demo.included_fabric).toBeNull();
+  });
+
+  it("exposes unstitched + per-component yardage for the seeded unstitched item", async () => {
+    const res = await catalog("?outlet_key=demo-outlet");
+    const items = await res.json();
+    const u = items.find((i) => i.sku === "UNSTITCHED-3PC-09");
+
+    expect(u).toBeTruthy();
+    expect(u.unstitched).toBe(true);
+    expect(u.included_fabric).toEqual({
+      shirtFront: 1.15,
+      shirtBack: 1.15,
+      sleeves: 0.66,
+      trouser: 2.5,
+      dupatta: 2.5,
+    });
   });
 
   it("404s for an unknown outlet_key", async () => {
