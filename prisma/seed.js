@@ -133,6 +133,26 @@ const PRODUCTS = [
     modelSizeWorn: "S",
     imageSlug: "lawn-angrakha-08",
   },
+  {
+    // Sapphire-style unstitched 3-piece — exercises the fabric-sufficiency path
+    // (spec §11). Included yardage per component, in meters. Still references a
+    // template (schema requires templateId); fit math is bypassed by the widget
+    // once it sees `unstitched`.
+    sku: "UNSTITCHED-3PC-09",
+    name: "Unstitched Lawn 3-Piece",
+    fabric: "lawn",
+    garmentType: "two_piece",
+    template: "Default Pret Standard",
+    modelHeight: "5'6\"",
+    modelSizeWorn: "M",
+    imageSlug: "unstitched-3pc-09",
+    unstitched: true,
+    fabricShirtFront: 1.15,
+    fabricShirtBack: 1.15,
+    fabricSleeves: 0.66,
+    fabricTrouser: 2.5,
+    fabricDupatta: 2.5,
+  },
 ];
 
 /**

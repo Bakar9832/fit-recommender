@@ -5,7 +5,8 @@ const router = Router();
 
 // GET /v1/catalog?outlet_key=... — public, read-only product list for one outlet
 // (powers the demo storefront). Tenant-scoped by outlet_key; no admin token.
-// → 200 [{ id, sku, name, fabric, garmentType, imageSlug, model_reference }]
+// → 200 [{ id, sku, name, fabric, garmentType, imageSlug, model_reference,
+//          unstitched, included_fabric }]
 // → 422 missing outlet_key | 404 unknown outlet
 router.get("/v1/catalog", async (req, res, next) => {
   const outletKey = req.query.outlet_key;
@@ -31,6 +32,12 @@ router.get("/v1/catalog", async (req, res, next) => {
         imageSlug: true,
         modelHeight: true,
         modelSizeWorn: true,
+        unstitched: true,
+        fabricShirtFront: true,
+        fabricShirtBack: true,
+        fabricSleeves: true,
+        fabricTrouser: true,
+        fabricDupatta: true,
       },
     });
 
@@ -45,6 +52,8 @@ router.get("/v1/catalog", async (req, res, next) => {
         p.modelHeight || p.modelSizeWorn
           ? { height: p.modelHeight ?? null, size_worn: p.modelSizeWorn ?? null }
           : null,
+      unstitched: p.unstitched,
+      included_fabric: includedFabric(p),
     }));
 
     return res.status(200).json(catalog);

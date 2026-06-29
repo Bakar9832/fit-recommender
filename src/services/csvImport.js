@@ -19,6 +19,14 @@ export const IMPORT_COLUMNS = [
   "colorSlot",
   "formality",
   "styleTag",
+  // Unstitched fabric-sufficiency (spec §11). `unstitched` true ⇒ all five
+  // fabric yardages (meters) are required, enforced by createProductSchema.
+  "unstitched",
+  "fabricShirtFront",
+  "fabricShirtBack",
+  "fabricSleeves",
+  "fabricTrouser",
+  "fabricDupatta",
 ];
 
 export const REQUIRED_COLUMNS = ["sku", "template", "garmentType"];
@@ -77,6 +85,13 @@ export function planImport(records, { templates, existingSkus }) {
       colorSlot: numericOrUndefined(rec.colorSlot),
       formality: rec.formality,
       styleTag: rec.styleTag,
+      // Unstitched fields (spec §11) — the schema enforces "all five when unstitched".
+      unstitched: boolOrUndefined(rec.unstitched),
+      fabricShirtFront: numericOrUndefined(rec.fabricShirtFront),
+      fabricShirtBack: numericOrUndefined(rec.fabricShirtBack),
+      fabricSleeves: numericOrUndefined(rec.fabricSleeves),
+      fabricTrouser: numericOrUndefined(rec.fabricTrouser),
+      fabricDupatta: numericOrUndefined(rec.fabricDupatta),
     });
 
     const parsed = createProductSchema.safeParse(candidate);
@@ -112,4 +127,16 @@ function pruneEmpty(obj) {
 function numericOrUndefined(v) {
   if (v === undefined || v === "") return undefined;
   return Number(v);
+}
+
+/**
+ * "" → undefined (schema default false). Common truthy/falsy tokens → boolean.
+ * Anything else is returned as-is so the schema rejects it with a clear error.
+ */
+function boolOrUndefined(v) {
+  if (v === undefined || v === "") return undefined;
+  const s = String(v).trim().toLowerCase();
+  if (["true", "1", "yes", "y"].includes(s)) return true;
+  if (["false", "0", "no", "n"].includes(s)) return false;
+  return v;
 }
