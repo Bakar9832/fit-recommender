@@ -28,6 +28,25 @@ export const recommendRequestSchema = z
   })
   .strict();
 
+/** Public unstitched fabric-sufficiency check (spec §11). Body measurements in
+ *  inches (height drives the length band); garments are the intended make. */
+const fabricGarment = z.enum(["kameez_kurti", "trousers", "dupatta"]);
+export const fabricCheckSchema = z
+  .object({
+    outlet_key: z.string().min(1, "outlet_key is required"),
+    sku: z.string().min(1, "sku is required"),
+    measurements: z
+      .object({
+        bust: measurement,
+        waist: measurement,
+        hip: measurement,
+        height: measurement.optional(),
+      })
+      .strict(),
+    garments: z.array(fabricGarment).min(1, "select at least one garment"),
+  })
+  .strict();
+
 // --- Admin schemas (spec §7) -------------------------------------------------
 
 const fitType = z.enum(["fitted", "regular", "loose"]);

@@ -34,7 +34,7 @@ Work the **Current task** only. Don't start the next item until the current one 
 - [x] Storefront hero image fix (visual-only): full garment shown (object-fit:contain) + capped on mobile
 - [x] Unstitched fabric-sufficiency (backend): schema + `checkFabric` engine + per-component bands + tests
 - [x] Unstitched admin: create/import yardage (validation reused), CSV columns, seed item, public read fields
-- [ ] Unstitched: widget garment-picker (next) — calls `checkFabric` for items where `unstitched` is true
+- [x] Unstitched widget: garment-picker + fabric-sufficiency result + `POST /v1/fabric/check` — **feature complete**
 - [ ] Deployment: hosted Postgres + API + static frontend (lock CORS to real origins)
 - [ ] Validation pass (spec §9): run real measurements, tune ease bands + weights  (field work, parallel)
 
@@ -60,6 +60,23 @@ Work the **Current task** only. Don't start the next item until the current one 
 
 ## Session log
 <!-- newest first. one short entry per session: what got done, what's next, any gotcha. -->
+- 2026-06-30 — Unstitched WIDGET flow → **unstitched feature complete** (spec §11). New public,
+  tenant-scoped `POST /v1/fabric/check` ({outlet_key,sku,measurements,garments[]}): loads the product,
+  `includedFabric()` → `checkFabric()`; 422 invalid / 404 outlet|product / **409 not_unstitched** for
+  stitched items. `fabricCheckSchema` in validation.js (garments enum kameez_kurti|trousers|dupatta,
+  min 1; measurements reuse the 20–80in validator). `widget/fitw.js` (visual/logic only — recommendFit,
+  size flow, dual-mode, CORS untouched): on mount the widget fetches the catalog, finds its product, and
+  **branches on `unstitched`** — unstitched shows a garment-picker (3 accessible checkbox chips, `:has`
+  highlight) + "Check fabric" → renders `renderFabricHTML` (overall chip "Likely enough"/"May need extra",
+  per-component list with suff/insuff dots, notes VERBATIM, meters in mono, caveat); stitched is the exact
+  size flow as before. `renderFabricHTML` exposed on `globalThis.__FITW__`. Button disabled "Loading…"
+  until product mode resolves (catch → stitched default). 87 tests pass (+5 fabricRoute: happy/borderline/
+  409/404/422). Verified via headless Edge in the storefront modal: unstitched 3-piece (short customer) →
+  mix of sufficient (sleeves/trouser) + "may want extra" (front/back/dupatta); stitched DEMO-001 → normal
+  size ladder unchanged. Next: deployment. Notes: widget loads the whole catalog on mount to read one
+  product's `unstitched` flag (fine for demo; a per-product GET would be leaner for prod). The seeded
+  Sapphire yardages (~1.15m front) sit just under the coarse tailor-pending bands, so most components read
+  "may want extra" except at short lengths — expected given §11 bands are starting estimates.
 - 2026-06-28 — Unstitched ADMIN support (backend/admin only; no widget). Reused the existing
   `createProductSchema` rule (unstitched ⇒ all five `fabric*` meters required) — flows through
   `POST /v1/admin/products` (422 with per-field details when a yardage is missing) and CSV import.

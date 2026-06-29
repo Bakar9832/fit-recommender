@@ -219,12 +219,64 @@
     return html;
   }
 
+  // ---- unstitched fabric-sufficiency rendering (spec §11) -------------------
+
+  // Human label per fabric component (UI only; notes come verbatim from the API).
+  var FABRIC_LABEL = {
+    shirtFront: "Front piece",
+    shirtBack: "Back piece",
+    sleeves: "Sleeves",
+    trouser: "Trouser",
+    dupatta: "Dupatta",
+  };
+  function fabricComponentLabel(c) {
+    return FABRIC_LABEL[c] || c;
+  }
+
+  // Render checkFabric's output: an overall summary chip, a per-component list
+  // (sufficient vs "may want extra", note VERBATIM, meters in mono), + the caveat.
+  // Guidance tone, garment-focused — never about the body.
+  function renderFabricHTML(data) {
+    var ok = !!(data && data.all_sufficient);
+    var html = "";
+
+    html +=
+      '<div class="fitw-fab-head"><span class="fitw-fab-title">Fabric check</span>' +
+      '<span class="fitw-chip' + (ok ? "" : " fitw-chip--caution") + '">' +
+      (ok ? "Likely enough" : "May need extra") +
+      "</span></div>";
+
+    html += '<ul class="fitw-fab-list">';
+    ((data && data.components) || []).forEach(function (c) {
+      var meters =
+        typeof c.needed_estimate === "number"
+          ? '<span class="fitw-fab-m">' +
+            (typeof c.included === "number" ? esc(c.included) : "—") +
+            " m included · ~" + esc(c.needed_estimate) + " m needed</span>"
+          : "";
+      html +=
+        '<li><span class="fitw-dot ' + (c.sufficient ? "fitw-suff" : "fitw-insuff") + '"></span>' +
+        '<span class="fitw-fab-c">' +
+        '<span class="fitw-fab-name">' + esc(fabricComponentLabel(c.component)) + "</span>" +
+        '<span class="fitw-fab-note">' + esc(c.note) + "</span>" +
+        meters +
+        "</span></li>";
+    });
+    html += "</ul>";
+
+    if (data && data.caveat) {
+      html += '<p class="fitw-fab-caveat">' + esc(data.caveat) + "</p>";
+    }
+    return html;
+  }
+
   // Expose pure helpers for Node-side verification (no-op in the browser).
   if (typeof globalThis !== "undefined") {
     globalThis.__FITW__ = {
       betweenSizesParagraph: betweenSizesParagraph,
       alsoConsiderLine: alsoConsiderLine,
       renderResultHTML: renderResultHTML,
+      renderFabricHTML: renderFabricHTML,
     };
   }
 
@@ -315,6 +367,27 @@
     ".fitw-guide-table th:first-child,.fitw-guide-table td:first-child{text-align:left}",
     ".fitw-guide-table td:first-child{color:var(--fitw-navy);font-weight:600}",
     ".fitw-guide-note{font-size:11px;color:var(--fitw-muted);margin:8px 0 0}",
+    // garment picker (unstitched)
+    ".fitw-garments{border:0;margin:2px 0 4px;padding:0;min-width:0}",
+    ".fitw-garments legend{font-size:13px;color:var(--fitw-ink);margin-bottom:8px;padding:0}",
+    ".fitw-gchips{display:flex;flex-wrap:wrap;gap:8px}",
+    ".fitw-gchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--fitw-line);border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer;background:var(--fitw-surface);color:var(--fitw-ink)}",
+    ".fitw-gchip input{accent-color:var(--fitw-navy);width:15px;height:15px;margin:0;cursor:pointer}",
+    ".fitw-gchip:has(input:checked){border-color:var(--fitw-navy);background:rgba(46,74,99,.06);color:var(--fitw-navy);font-weight:600}",
+    ".fitw-gchip:focus-within{outline:3px solid var(--fitw-navy);outline-offset:2px}",
+    // fabric-sufficiency result
+    ".fitw-fab-head{display:flex;align-items:center;gap:12px;margin-bottom:4px}",
+    ".fitw-fab-head .fitw-chip{margin:0}",
+    ".fitw-fab-title{font-family:var(--fitw-display);font-size:22px;color:var(--fitw-navy)}",
+    ".fitw-fab-list{list-style:none;margin:8px 0 0;padding:0;border-top:1px solid var(--fitw-line)}",
+    ".fitw-fab-list li{display:flex;align-items:flex-start;gap:10px;padding:11px 0;border-bottom:1px solid var(--fitw-line)}",
+    ".fitw-fab-c{display:flex;flex-direction:column;gap:2px;min-width:0}",
+    ".fitw-fab-name{font-family:var(--fitw-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--fitw-muted)}",
+    ".fitw-fab-note{font-size:13.5px;color:var(--fitw-ink)}",
+    ".fitw-fab-m{font-family:var(--fitw-mono);font-size:11.5px;color:var(--fitw-muted);margin-top:2px}",
+    ".fitw-dot.fitw-suff{background:var(--fitw-navy)}",
+    ".fitw-dot.fitw-insuff{background:var(--fitw-blush)}",
+    ".fitw-fab-caveat{font-size:12.5px;color:var(--fitw-muted);font-style:italic;margin:12px 0 0}",
     "@keyframes fitw-fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}",
     "@media (max-width:720px){.fitw-card{grid-template-columns:1fr}.fitw-panel--form{border-right:0;border-bottom:1px solid var(--fitw-line)}}",
     "@media (prefers-reduced-motion:reduce){.fitw *{animation:none!important;transition:none!important}}",
@@ -351,6 +424,17 @@
     );
   }
 
+  // A tappable, accessible multi-select chip (native checkbox) for the garment picker.
+  function gchip(label, value) {
+    return (
+      '<label class="fitw-gchip"><input type="checkbox" name="garment" value="' +
+      value + '" /><span>' + label + "</span></label>"
+    );
+  }
+
+  var HINT_SIZE = "Try 34 / 28 / 38 for a clear fit, or 34 / 26.5 / 36 for a between-sizes result.";
+  var HINT_FABRIC = "Pick what you'll make, then add your measurements.";
+
   function mount(el) {
     var outletKey = el.getAttribute("data-outlet");
     var sku = el.getAttribute("data-product");
@@ -366,8 +450,15 @@
       field("Bust", "bust", true) +
       '<div class="fitw-row2">' + field("Waist", "waist", true) + field("Hip", "hip", true) + "</div>" +
       field("Height", "height", false) +
-      '<p class="fitw-hint">Try 34 / 28 / 38 for a clear fit, or 34 / 26.5 / 36 for a between-sizes result.</p>' +
-      '<button type="submit" class="fitw-btn">Find my size</button>' +
+      // Garment picker — revealed only for unstitched products (set in setMode).
+      '<fieldset class="fitw-garments" hidden><legend>What will you make?</legend>' +
+      '<div class="fitw-gchips">' +
+      gchip("Kameez / Kurti", "kameez_kurti") +
+      gchip("Trousers", "trousers") +
+      gchip("Dupatta", "dupatta") +
+      "</div></fieldset>" +
+      '<p class="fitw-hint">' + HINT_SIZE + "</p>" +
+      '<button type="submit" class="fitw-btn" disabled>Loading…</button>' +
       '<div class="fitw-err" hidden></div>' +
       "</form></div>" +
       '<div class="fitw-panel fitw-panel--result">' +
@@ -379,9 +470,13 @@
     var errBox = el.querySelector(".fitw-err");
     var emptyBox = el.querySelector(".fitw-empty");
     var resultBox = el.querySelector(".fitw-result");
+    var btn = form.querySelector(".fitw-btn");
+    var garmentsBox = el.querySelector(".fitw-garments");
+    var hint = el.querySelector(".fitw-hint");
+    var mode = null; // "stitched" | "unstitched" — set once the product loads
 
-    // Delegated expand/collapse for the ladder rows and the size-guide toggle.
-    // Buttons fire click on Enter/Space, so this is keyboard-accessible.
+    // Delegated expand/collapse for the ladder rows and the size-guide toggle
+    // (size flow only). Buttons fire click on Enter/Space → keyboard-accessible.
     resultBox.addEventListener("click", function (e) {
       var head = e.target.closest(".fitw-srow-head, .fitw-guide-toggle");
       if (!head || !resultBox.contains(head)) return;
@@ -391,36 +486,86 @@
       if (body) body.hidden = expanded;
     });
 
-    form.addEventListener("submit", function (e) {
-      e.preventDefault();
-      errBox.hidden = true;
+    // Decide the branch from the product the widget loads: unstitched → fabric
+    // (garment picker + sufficiency); otherwise the existing size-chart flow.
+    function setMode(m) {
+      mode = m;
+      if (m === "unstitched") {
+        garmentsBox.hidden = false;
+        hint.textContent = HINT_FABRIC;
+        btn.textContent = "Check fabric";
+        emptyBox.innerHTML =
+          '<span class="fitw-glyph">&#8966;</span>Your fabric guidance will appear here.';
+      } else {
+        garmentsBox.hidden = true;
+        hint.textContent = HINT_SIZE;
+        btn.textContent = "Find my size";
+      }
+      btn.disabled = false;
+    }
 
+    fetch(apiBase + "/v1/catalog?outlet_key=" + encodeURIComponent(outletKey))
+      .then(function (res) { return res.json(); })
+      .then(function (list) {
+        var p = Array.isArray(list)
+          ? list.filter(function (x) { return x.sku === sku; })[0]
+          : null;
+        setMode(p && p.unstitched ? "unstitched" : "stitched");
+      })
+      .catch(function () { setMode("stitched"); }); // safe default: size flow
+
+    function readMeasurements() {
       var m = {
         bust: parseFloat(form.bust.value),
         waist: parseFloat(form.waist.value),
         hip: parseFloat(form.hip.value),
       };
       if (form.height.value !== "") m.height = parseFloat(form.height.value);
-
       var bad = ["bust", "waist", "hip"].filter(function (k) {
         return !(m[k] >= MIN_IN && m[k] <= MAX_IN);
       });
       if (m.height != null && !(m.height >= MIN_IN && m.height <= MAX_IN)) bad.push("height");
-      if (bad.length) {
+      return { m: m, bad: bad };
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      errBox.hidden = true;
+
+      var parsed = readMeasurements();
+      if (parsed.bad.length) {
         return showError(
           errBox,
-          "Please enter " + bad.join(", ") + " in inches (" + MIN_IN + "–" + MAX_IN + ")."
+          "Please enter " + parsed.bad.join(", ") + " in inches (" + MIN_IN + "–" + MAX_IN + ")."
         );
       }
 
-      var btn = form.querySelector(".fitw-btn");
+      // Build the request + renderer for the current mode.
+      var endpoint, payload, render;
+      if (mode === "unstitched") {
+        var garments = Array.prototype.map.call(
+          form.querySelectorAll('input[name="garment"]:checked'),
+          function (c) { return c.value; }
+        );
+        if (!garments.length) {
+          return showError(errBox, "Please pick at least one garment to make.");
+        }
+        endpoint = "/v1/fabric/check";
+        payload = { outlet_key: outletKey, sku: sku, measurements: parsed.m, garments: garments };
+        render = function (b) { return renderFabricHTML(b); };
+      } else {
+        endpoint = "/v1/fit/recommend";
+        payload = { outlet_key: outletKey, sku: sku, measurements: parsed.m };
+        render = function (b) { return renderResultHTML(b, { idPrefix: idPrefix }); };
+      }
+
       btn.disabled = true;
       btn.textContent = "Checking…";
 
-      fetch(apiBase + "/v1/fit/recommend", {
+      fetch(apiBase + endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ outlet_key: outletKey, sku: sku, measurements: m }),
+        body: JSON.stringify(payload),
       })
         .then(function (res) {
           return res.json().then(function (body) {
@@ -433,17 +578,17 @@
             return;
           }
           emptyBox.style.display = "none";
-          resultBox.innerHTML = renderResultHTML(r.body, { idPrefix: idPrefix });
+          resultBox.innerHTML = render(r.body);
           resultBox.classList.remove("fitw-show");
           void resultBox.offsetWidth; // restart the entrance animation
           resultBox.classList.add("fitw-show");
         })
         .catch(function () {
-          showError(errBox, "Couldn't reach the size service. Please try again.");
+          showError(errBox, "Couldn't reach the service. Please try again.");
         })
         .then(function () {
           btn.disabled = false;
-          btn.textContent = "Find my size";
+          btn.textContent = mode === "unstitched" ? "Check fabric" : "Find my size";
         });
     });
   }

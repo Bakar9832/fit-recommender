@@ -3,6 +3,7 @@ import healthRouter from "./routes/health.js";
 import fitRouter from "./routes/fit.js";
 import adminRouter from "./routes/admin.js";
 import catalogRouter from "./routes/catalog.js";
+import fabricRouter from "./routes/fabric.js";
 
 // Builds the Express app without binding a port, so it can be imported in tests
 // and mounted by the server entry point.
@@ -29,6 +30,7 @@ export function createApp() {
   app.use(healthRouter);
   app.use(fitRouter);
   app.use(catalogRouter);
+  app.use(fabricRouter);
   app.use("/v1/admin", adminRouter);
 
   // Centralized error handler: anything thrown in an async route lands here as
