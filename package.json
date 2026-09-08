@@ -5,9 +5,13 @@
   "description": "Embeddable size/fit recommendation widget for Pakistani ready-to-wear ethnic-wear outlets (Phase 1 backend).",
   "type": "module",
   "main": "src/server.js",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "build": "prisma generate",
     "seed": "node prisma/seed.js",
     "migrate": "prisma migrate dev",
     "generate": "prisma generate",
@@ -18,11 +22,11 @@
     "@prisma/client": "^6.1.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "prisma": "^6.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9",
-    "prisma": "^6.1.0",
     "vitest": "^2.1.8"
   }
 }
