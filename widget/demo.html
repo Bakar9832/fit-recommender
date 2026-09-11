@@ -12,6 +12,8 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
     />
+    <!-- API origin (single source of truth); read by fitw.js as window.FITW_API_BASE. -->
+    <script src="config.js"></script>
     <style>
       :root {
         --paper: #f6f7f9;
@@ -102,13 +104,9 @@
 
       <!-- Embed shape per spec §2: a div with data-* attributes + a script tag.
            Hosts the widget against the seeded demo outlet + product DEMO-001.
-           Run the API first (npm run dev) on http://localhost:3000. -->
-      <div
-        id="fitw"
-        data-outlet="demo-outlet"
-        data-product="DEMO-001"
-        data-api="http://localhost:3000"
-      ></div>
+           API origin comes from config.js (window.FITW_API_BASE); to override
+           per-embed, add a data-api="..." attribute here. -->
+      <div id="fitw" data-outlet="demo-outlet" data-product="DEMO-001"></div>
       <script src="./fitw.js" async></script>
 
       <section class="props">

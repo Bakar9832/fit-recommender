@@ -12,6 +12,8 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
     />
+    <!-- API origin (single source of truth); loaded before the page script. -->
+    <script src="config.js"></script>
     <style>
       :root {
         --paper: #f6f7f9;
@@ -43,6 +45,14 @@
         display: flex; align-items: center; gap: 12px;
       }
       .sf-eyebrow::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+      /* nav link to the standalone Polish Studio (order:1 → sits after the hairline) */
+      .sf-nav {
+        order: 1; font-family: var(--mono); font-size: 12px; letter-spacing: .14em;
+        text-transform: uppercase; font-weight: 600; color: var(--navy); text-decoration: none;
+        white-space: nowrap; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+      }
+      .sf-nav:hover { background: rgba(46,74,99,.06); }
+      .sf-nav:focus-visible { outline: 3px solid var(--navy); outline-offset: 2px; }
       .sf-wrap h1 {
         font-family: var(--display); font-weight: 400; color: var(--navy);
         font-size: clamp(30px, 5.5vw, 52px); line-height: 1.04; margin: 16px 0 10px; max-width: 18ch;
@@ -161,7 +171,7 @@
   </head>
   <body>
     <main class="sf-wrap">
-      <div class="sf-eyebrow">Fitting Room · Demo Storefront</div>
+      <div class="sf-eyebrow">Fitting Room · Demo Storefront<a class="sf-nav" href="nail-studio.html">Polish Studio →</a></div>
       <h1>Pakistani pret, sized with confidence.</h1>
       <p class="sf-lede">
         A demo storefront for one outlet. Browse the pieces, open one, and try the embedded
@@ -198,7 +208,7 @@
     <script>
       (function () {
         "use strict";
-        var API_BASE = "http://localhost:3000"; // demo: API origin
+        var API_BASE = window.FITW_API_BASE || window.location.origin; // set in config.js
         var OUTLET_KEY = "demo-outlet";
 
         var grid = document.getElementById("grid");

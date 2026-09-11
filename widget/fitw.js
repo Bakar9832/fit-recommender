@@ -438,7 +438,8 @@
   function mount(el) {
     var outletKey = el.getAttribute("data-outlet");
     var sku = el.getAttribute("data-product");
-    var apiBase = el.getAttribute("data-api") || window.location.origin;
+    var apiBase =
+      el.getAttribute("data-api") || window.FITW_API_BASE || window.location.origin;
     var idPrefix = "fitw" + ++seq;
 
     el.className = (el.className ? el.className + " " : "") + "fitw";
